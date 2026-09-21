@@ -179,3 +179,9 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
 .difficulty-card .difficulty-diamonds i:after{content:"";position:absolute;left:49%;top:0;width:2px;height:78%;background:linear-gradient(#ffffffb8,transparent);transform:rotate(28deg);transform-origin:top}
 .difficulty-card .difficulty-crown{display:flex;align-items:center;justify-content:center;height:52px;margin:0}
 .difficulty-card .difficulty-crown svg{width:64px;height:52px;overflow:visible;filter:drop-shadow(0 5px 5px #000a) drop-shadow(0 0 9px #ffc64d99)}
+
+/* Enemies advance toward the hero; target labels stay clear of their heads */
+.enemy-3d-sprite.pose-run{transform:scaleX(-1)}
+.battlefield .target-bubble{top:-56px}
+.enemy-unit.boss .target-bubble{top:-60px}
+@media(max-width:760px){.battlefield .target-bubble{top:-48px}.enemy-unit.boss .target-bubble{top:-54px}}
