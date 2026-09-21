@@ -16,3 +16,12 @@ Additional art can be added to these folders later:
 - `ui/`, `effects/`, `icons/`, `sounds/`: optional UI and audio replacements
 
 Keep assets optimized for the web. PNG or WebP with transparent backgrounds is recommended for sprites. Preserve relative paths so GitHub Pages continues to work from a project subfolder.
+# ชุดภาพตัวละครหลายมุม
+
+ไฟล์ใน `characters/3d` และ `enemies/3d` เป็น Sprite Sheet โปร่งใสขนาด 4 × 4 ช่อง:
+
+- แถว 1–2: มุมมองรอบตัว 8 ทิศ
+- แถว 3: ท่ายืน 2 เฟรม และท่าวิ่ง 2 เฟรม
+- แถว 4: ท่าโจมตี 2 เฟรม และท่าปล่อยพลัง 2 เฟรม
+
+หน้าเลือกตัวละครใช้ภาพ 8 ทิศเป็นมุมมอง 360° แบบเบาเครื่อง ส่วนฉากต่อสู้สลับเฟรมท่าทางตามเหตุการณ์ในเกม

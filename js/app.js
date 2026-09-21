@@ -4,6 +4,7 @@
   const DH=window.DrawHero,$=id=>document.getElementById(id),game=new DH.GameState();
   let activeScreen="splash",characterIndex=Math.max(0,DH.Characters.all.findIndex(c=>c.id===game.characterId));
   let flowActive=false,selectedWorld=1,lastResult=null,currentStage=null,toastTimer=0,tutorialStep=0;
+  let modelTimer=0,modelAngle=0,modelDrag=null;
   const battle=new DH.BattleEngine(game,handleBattleFinish),ar=new DH.ARController({onStatus:message=>toast(message)});
 
   const i18n={
@@ -27,6 +28,8 @@
   }
   function showScreen(name){
     if(activeScreen==="battle"&&name!=="battle"){battle.stop();ar.stop();$("screen-battle").classList.remove("ar-mode");}
+    if(name!=="characters")clearInterval(modelTimer);
+    $("pause-modal").hidden=true;$("tutorial-modal").hidden=true;
     document.querySelectorAll(".screen").forEach(screen=>screen.classList.toggle("active",screen.dataset.screen===name));
     activeScreen=name;window.scrollTo(0,0);
     if(name==="main")updatePlayerUI();if(name==="characters")renderCharacter();if(name==="map")renderMap();if(name==="custom")renderCustomStages();
@@ -39,10 +42,28 @@
   }
   function selectMode(id){game.setMode(id);flowActive=true;DH.Audio.play("click");showScreen("characters");}
   function renderCharacter(){
-    const c=DH.Characters.all[characterIndex];const showcase=$("character-showcase");showcase.style.setProperty("--char-glow",`${c.color}66`);showcase.style.setProperty("--char",c.color);showcase.innerHTML=`<div class="character-runes"></div>${heroMarkup(c,false)}<div class="character-thumbnails" aria-label="ตัวละครทั้งหมด"></div>`;
+    clearInterval(modelTimer);modelAngle=0;
+    const c=DH.Characters.all[characterIndex];const showcase=$("character-showcase");showcase.style.setProperty("--char-glow",`${c.color}66`);showcase.style.setProperty("--char",c.color);showcase.innerHTML=`<div class="character-runes"></div><div class="model-badge"><i></i> 3D CHARACTER • 360°</div><div class="model-stage"><button id="model-rotate-left" class="model-rotate" type="button" aria-label="หมุนตัวละครไปทางซ้าย">‹</button><div id="hero-model-sprite" class="model-sprite hero-model-sprite" style="--model-sheet:url('../${c.sprite3d}')" role="img" aria-label="โมเดล ${c.name} แบบหมุนดูรอบตัว" tabindex="0"></div><button id="model-rotate-right" class="model-rotate" type="button" aria-label="หมุนตัวละครไปทางขวา">›</button><div class="model-platform" aria-hidden="true"><i></i></div></div><div class="model-controls" aria-label="ท่าทางตัวละคร"><button type="button" data-model-pose="rotate">360°</button><button type="button" data-model-pose="idle" class="active">ยืน</button><button type="button" data-model-pose="run">วิ่ง</button><button type="button" data-model-pose="attack">โจมตี</button><button type="button" data-model-pose="skill">ปล่อยพลัง</button></div><div id="model-angle-label" class="model-angle-label">ด้านหน้า • ลากเพื่อหมุน</div><div class="character-thumbnails" aria-label="ตัวละครทั้งหมด"></div>`;
     const thumbnails=showcase.querySelector(".character-thumbnails"),positions=[0,36,74,100];DH.Characters.all.forEach((character,index)=>{const button=document.createElement("button");button.className=index===characterIndex?"active":"";button.style.setProperty("--hero-pos",`${positions[index]}%`);button.style.setProperty("--hero",character.color);button.setAttribute("aria-label",`เลือก ${character.name}`);button.innerHTML='<i class="hero-sprite"></i><small>'+character.name+'</small>';button.addEventListener("click",()=>{characterIndex=index;renderCharacter();});thumbnails.appendChild(button);});
+    bindModelViewer();
     const skill=DH.Skills.get(c.skill);$("character-info").style.setProperty("--char",c.color);$("character-info").innerHTML=`<small class="class-tag">${c.class.toUpperCase()} • LEVEL ${c.level}</small><h2>${c.name}</h2><h3>${c.title}</h3><p>${c.description}</p><div class="stat-row"><span>POWER</span><i style="width:${c.stats.power}%"></i></div><div class="stat-row"><span>SPEED</span><i style="width:${c.stats.speed}%"></i></div><div class="stat-row"><span>MAGIC</span><i style="width:${c.stats.magic}%"></i></div><div class="ability"><b>${c.passive}</b><small>PASSIVE SKILL</small></div><div class="ability"><b>${skill.name}</b><small>${skill.description||"ULTIMATE SKILL"}</small></div>`;
     $("select-character").textContent=game.characterId===c.id?`เลือกแล้ว • ${c.name}`:`เลือก ${c.name}`;
+  }
+  function bindModelViewer(){
+    const sprite=$("hero-model-sprite"),label=$("model-angle-label");if(!sprite)return;
+    const angleNames=["ด้านหน้า","เฉียงขวา","ด้านขวา","เฉียงหลังขวา","ด้านหลัง","เฉียงหลังซ้าย","ด้านซ้าย","เฉียงซ้าย"];
+    const poseFrames={idle:[8,9],run:[10,11],attack:[12,13],skill:[14,15]};
+    const setFrame=frame=>{const column=frame%4,row=Math.floor(frame/4);sprite.style.setProperty("--frame-x",`${column*100/3}%`);sprite.style.setProperty("--frame-y",`${row*100/3}%`);};
+    const setActive=pose=>document.querySelectorAll("[data-model-pose]").forEach(button=>button.classList.toggle("active",button.dataset.modelPose===pose));
+    const rotate=direction=>{clearInterval(modelTimer);modelAngle=(modelAngle+direction+8)%8;setFrame(modelAngle);setActive("rotate");label.textContent=`${angleNames[modelAngle]} • ลากเพื่อหมุน`;sprite.classList.add("is-turning");setTimeout(()=>sprite.classList.remove("is-turning"),180);};
+    const playPose=pose=>{clearInterval(modelTimer);if(pose==="rotate"){setFrame(modelAngle);setActive(pose);label.textContent=`${angleNames[modelAngle]} • ลากเพื่อหมุน`;return;}const frames=poseFrames[pose]||poseFrames.idle;let index=0;setFrame(frames[0]);setActive(pose);label.textContent={idle:"ท่ายืนพร้อมรบ",run:"ท่าเคลื่อนที่",attack:"ท่าโจมตี / ฟาดฟัน",skill:"ท่ารวมพลัง / ปล่อยสกิล"}[pose];modelTimer=setInterval(()=>{index=(index+1)%frames.length;setFrame(frames[index]);},pose==="skill"?520:pose==="attack"?330:460);};
+    $("model-rotate-left").addEventListener("click",()=>rotate(-1));$("model-rotate-right").addEventListener("click",()=>rotate(1));
+    document.querySelectorAll("[data-model-pose]").forEach(button=>button.addEventListener("click",()=>playPose(button.dataset.modelPose)));
+    sprite.addEventListener("pointerdown",event=>{modelDrag={x:event.clientX};sprite.setPointerCapture(event.pointerId);sprite.classList.add("dragging");});
+    sprite.addEventListener("pointermove",event=>{if(!modelDrag)return;const distance=event.clientX-modelDrag.x;if(Math.abs(distance)>=30){rotate(distance>0?1:-1);modelDrag.x=event.clientX;}});
+    const endDrag=()=>{modelDrag=null;sprite.classList.remove("dragging");};sprite.addEventListener("pointerup",endDrag);sprite.addEventListener("pointercancel",endDrag);
+    sprite.addEventListener("keydown",event=>{if(event.key==="ArrowLeft"){event.preventDefault();rotate(-1);}if(event.key==="ArrowRight"){event.preventDefault();rotate(1);}});
+    playPose("idle");
   }
   function cycleCharacter(direction){characterIndex=(characterIndex+direction+DH.Characters.all.length)%DH.Characters.all.length;renderCharacter();DH.Audio.play("click");}
   function confirmCharacter(){const c=DH.Characters.all[characterIndex];game.setCharacter(c.id);toast(`เลือก ${c.name} เป็นฮีโร่แล้ว`);if(flowActive)showScreen("difficulty");else showScreen("main");}
@@ -101,12 +122,13 @@
   function showTutorial(){tutorialStep=0;renderTutorial();battle.paused=true;$("pause-modal").hidden=true;$("tutorial-modal").hidden=false;}
   function renderTutorial(){const steps=[{v:"✎ → ○",t:"ดูสัญลักษณ์เหนือหัวศัตรู แล้ววาดตามบนกระดานเวทมนตร์"},{v:"☝ → ✦",t:"กด “ร่ายเวท” เพื่อให้ระบบตรวจคำตอบ"},{v:"✦ → ⚔",t:"ถ้าวาดถูก ฮีโร่จะยิงเวทโจมตีศัตรู"},{v:"♥ → ★",t:"อย่าปล่อยให้ศัตรูถึงฐาน สะสมคะแนน Combo และดาวให้ครบ!"}];$("tutorial-visual").textContent=steps[tutorialStep].v;$("tutorial-text").textContent=steps[tutorialStep].t;document.querySelectorAll(".tutorial-dots i").forEach((dot,index)=>dot.classList.toggle("active",index===tutorialStep));$("tutorial-next").textContent=tutorialStep===steps.length-1?"เริ่มต่อสู้":"ถัดไป";}
   function closeTutorial(){game.save.tutorialSeen=true;game.persist();$("tutorial-modal").hidden=true;battle.resume();}
+  function returnHome(){battle.stop();ar.stop();flowActive=false;currentStage=null;$("screen-battle").classList.remove("ar-mode");$("pause-modal").hidden=true;$("tutorial-modal").hidden=true;showScreen("main");toast("กลับสู่หน้าหลักแล้ว");}
   function bindNavigation(){
     $("start-button").addEventListener("click",()=>{flowActive=true;showScreen("modes");});document.querySelectorAll("[data-nav]").forEach(button=>button.addEventListener("click",()=>{flowActive=false;const target=button.dataset.nav;if(target==="settings")loadSettingsForm();showScreen(target);}));
     document.querySelectorAll("[data-back]").forEach(button=>button.addEventListener("click",()=>showScreen(button.dataset.back)));
     $("character-prev").addEventListener("click",()=>cycleCharacter(-1));$("character-next").addEventListener("click",()=>cycleCharacter(1));$("select-character").addEventListener("click",confirmCharacter);
     $("practice-form").addEventListener("submit",startPractice);$("player-profile-button").addEventListener("click",()=>{const name=prompt("ชื่อผู้เล่น",game.save.playerName);if(name&&name.trim()){game.save.playerName=name.trim().slice(0,24);game.persist();updatePlayerUI();}});
-    $("quit-battle-button").addEventListener("click",()=>{battle.stop();flowActive=false;showScreen("main");});$("restart-button").addEventListener("click",()=>startBattle(currentStage));
+    $("quit-battle-button").addEventListener("click",returnHome);$("restart-button").addEventListener("click",()=>{const stage=currentStage;$("pause-modal").hidden=true;if(stage)startBattle(stage);else returnHome();});
     $("tutorial-next").addEventListener("click",()=>{if(tutorialStep<3){tutorialStep+=1;renderTutorial();}else closeTutorial();});$("tutorial-skip").addEventListener("click",closeTutorial);
   }
   function bindSettings(){document.querySelectorAll("#settings-form input,#settings-form select").forEach(input=>input.addEventListener("input",saveSettings));$("reset-progress").addEventListener("click",()=>{if(confirm("คุณต้องการลบข้อมูลความก้าวหน้าทั้งหมดหรือไม่? การกระทำนี้ย้อนกลับไม่ได้")){game.save=DH.Storage.reset();game.characterId=game.save.selectedCharacter;characterIndex=0;applySettings();loadSettingsForm();updatePlayerUI();renderMap();toast("ลบข้อมูลความก้าวหน้าแล้ว");}});}

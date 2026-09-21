@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   class BattleEngine {
     constructor(game,onFinish){
-      this.game=game;this.onFinish=onFinish;this.running=false;this.paused=false;this.raf=0;this.lastTime=0;
+      this.game=game;this.onFinish=onFinish;this.running=false;this.paused=false;this.raf=0;this.lastTime=0;this.heroActionTimer=0;this.pendingTimers=new Set();
       this.board=null;this.stage=null;this.enemies=[];this.questions=[];this.questionCursor=0;this.slotIndex=0;
       this.hp=3;this.score=0;this.combo=0;this.bestCombo=0;this.correct=0;this.wrong=0;this.accuracyTotal=0;this.skillGauge=0;
       this.timeLeft=0;this.questionTime=0;this.startTime=0;this.slowUntil=0;this.freezeUntil=0;this.hintUsed=false;this.completedQuestions=0;
@@ -54,7 +54,12 @@
       $("player-unit").innerHTML=this.heroMarkup(character,false);
       const skill=window.DrawHero.Skills.get(character.skill);$("skill-name").textContent=skill.name;$("skill-icon").textContent=skill.icon;
     }
-    heroMarkup(character,withName){const sprite=Math.max(0,window.DrawHero.Characters.all.findIndex(item=>item.id===character.id)),positions=[0,36,74,100];return `<div class="hero-card-figure hero-${character.id}" style="--hero:${character.color};--hero-pos:${positions[sprite]}%"><div class="hero-sprite" role="img" aria-label="${character.name}"></div>${withName?`<b class="hero-nameplate">${character.name}</b>`:""}</div>`;}
+    heroMarkup(character,withName){return `<div class="model-sprite hero-combat-model pose-idle" style="--model-sheet:url('../${character.sprite3d}');--hero:${character.color}" role="img" aria-label="${character.name}"></div>${withName?`<b class="hero-nameplate">${character.name}</b>`:""}`;}
+    playHeroAction(action,duration=700){
+      const sprite=$("player-unit").querySelector(".hero-combat-model");if(!sprite)return;
+      clearTimeout(this.heroActionTimer);sprite.classList.remove("pose-idle","pose-run","pose-attack","pose-skill");void sprite.offsetWidth;sprite.classList.add(`pose-${action}`);
+      this.heroActionTimer=setTimeout(()=>{sprite.classList.remove("pose-run","pose-attack","pose-skill");sprite.classList.add("pose-idle");},duration);
+    }
     spawnEnemies(){
       const layer=$("enemy-layer");layer.innerHTML="";this.enemies=[];
       const count=this.stage.boss?1:Math.min(this.stage.simultaneous||1,Math.max(1,this.questions.length));
@@ -63,10 +68,9 @@
     addEnemy(index){
       const type=this.stage.enemyTypes[index%this.stage.enemyTypes.length]||"goblin";
       const data=window.DrawHero.Enemies.get(type);if(this.stage.boss){data.hp=Math.max(data.hp,this.questions.length);data.boss=true;}
-      const spriteMap={goblin:0,skeleton:1,orc:2,shadow:3,ghost:3,armoredDemon:4,bossDemon:4};
-      const element=document.createElement("div");element.className=`enemy-unit${data.boss?" boss":""}`;element.style.setProperty("--enemy",data.color);element.style.setProperty("--enemy-pos",`${(spriteMap[data.id]??0)*25}%`);
+      const element=document.createElement("div");element.className=`enemy-unit${data.boss?" boss":""}`;element.style.setProperty("--enemy",data.color);
       const question=this.questions[(this.questionCursor+index)%this.questions.length];
-      element.innerHTML=`<div class="target-bubble">${this.escape(question.display)}</div><div class="enemy-art" role="img" aria-label="${data.name}"></div><div class="enemy-hp"><i></i></div>`;
+      element.innerHTML=`<div class="target-bubble">${this.escape(question.display)}</div><div class="model-sprite enemy-3d-sprite pose-run" style="--model-sheet:url('../${data.sprite3d}')" role="img" aria-label="${data.name}"></div><div class="enemy-hp"><i></i></div>`;
       $("enemy-layer").appendChild(element);
       const enemy={data,element,hp:data.hp,maxHp:data.hp,distance:100+index*13,question};this.enemies.push(enemy);this.positionEnemy(enemy);
     }
@@ -117,8 +121,8 @@
       window.DrawHero.Audio.play("spell");this.advanceAfterHit();
     }
     wrongAnswer(score){this.wrong+=1;this.combo=0;this.message(score>0?`ลองอีกครั้ง! ${score}%`:"ยังไม่มีเส้นเวท");window.DrawHero.Audio.play("wrong");this.updateHud();}
-    attackEnemy(damage,score){
-      const enemy=this.activeEnemy();if(!enemy)return;enemy.hp=Math.max(0,enemy.hp-damage);enemy.element.querySelector(".enemy-hp i").style.width=`${enemy.hp/enemy.maxHp*100}%`;
+    attackEnemy(damage,score,animate=true){
+      const enemy=this.activeEnemy();if(!enemy)return;if(animate)this.playHeroAction("attack",720);enemy.hp=Math.max(0,enemy.hp-damage);enemy.element.querySelector(".enemy-hp i").style.width=`${enemy.hp/enemy.maxHp*100}%`;enemy.element.classList.remove("hit");void enemy.element.offsetWidth;enemy.element.classList.add("hit");
       const projectile=document.createElement("i");projectile.className="projectile";projectile.style.setProperty("--target-x",`${Math.max(20,enemy.distance)}%`);$("projectile-layer").appendChild(projectile);setTimeout(()=>projectile.remove(),650);
       const floating=document.createElement("b");floating.className="floating-damage";floating.textContent=`-${damage}  +${score}`;floating.style.left=`${enemy.distance}%`;floating.style.bottom="48%";$("projectile-layer").appendChild(floating);setTimeout(()=>floating.remove(),900);
       if(enemy.hp<=0){enemy.element.classList.add("defeated");setTimeout(()=>{enemy.element.remove();},650);this.enemies.shift();}
@@ -145,11 +149,11 @@
     }
     useSkill(){
       if(this.skillGauge<100){this.message(`พลังสกิล ${Math.round(this.skillGauge)}%`);return;}
-      const skill=window.DrawHero.Skills.get(window.DrawHero.Characters.get(this.game.characterId).skill);this.skillGauge=0;
+      const skill=window.DrawHero.Skills.get(window.DrawHero.Characters.get(this.game.characterId).skill);this.skillGauge=0;this.playHeroAction("skill",1100);$("battlefield").classList.remove("skill-burst");void $("battlefield").offsetWidth;$("battlefield").classList.add("skill-burst");
       if(skill.type==="destroyAll"){
         this.enemies.slice().forEach(enemy=>{if(!enemy.data.boss){enemy.hp=0;enemy.element.classList.add("defeated");setTimeout(()=>enemy.element.remove(),600);}});
         this.enemies=this.enemies.filter(enemy=>enemy.data.boss);if(!this.enemies.length){this.questionCursor=Math.min(this.questions.length-1,this.questionCursor+1);this.addEnemy(0);this.setQuestion();}
-      } else if(skill.type==="damage")this.attackEnemy(skill.value||3,0);
+      } else if(skill.type==="damage")this.attackEnemy(skill.value||3,0,false);
       else if(skill.type==="slow")this.slowUntil=performance.now()+(skill.duration||5000);
       else if(skill.type==="freeze")this.freezeUntil=performance.now()+(skill.duration||5000);
       this.message(skill.name);window.DrawHero.Audio.play("spell");this.updateHud();
@@ -170,10 +174,13 @@
     }
     positionEnemy(enemy){enemy.element.style.left=`${Math.max(8,Math.min(96,enemy.distance))}%`;}
     enemyReached(enemy){
-      const index=this.enemies.indexOf(enemy);if(index>=0)this.enemies.splice(index,1);enemy.element.remove();this.combo=0;this.wrong+=1;
-      if(this.game.mode!=="practice")this.hp=Math.max(0,this.hp-1);this.message(this.game.mode==="practice"?"ลองตัวต่อไปนะ":"เสียหัวใจ 1 ดวง");
-      if(this.hp<=0&&this.game.mode!=="practice"){this.finish(false);return;}
-      if(this.questionCursor<this.questions.length)this.addEnemy(0);this.setQuestion();this.updateHud();
+      if(enemy.attacking)return;enemy.attacking=true;const index=this.enemies.indexOf(enemy);if(index>=0)this.enemies.splice(index,1);
+      const sprite=enemy.element.querySelector(".enemy-3d-sprite");if(sprite){sprite.classList.remove("pose-run");sprite.classList.add("pose-attack");}enemy.element.classList.add("enemy-strike");
+      const timer=setTimeout(()=>{this.pendingTimers.delete(timer);enemy.element.remove();if(!this.running)return;this.combo=0;this.wrong+=1;$("player-unit").classList.remove("player-hit");void $("player-unit").offsetWidth;$("player-unit").classList.add("player-hit");
+        if(this.game.mode!=="practice")this.hp=Math.max(0,this.hp-1);this.message(this.game.mode==="practice"?"ลองตัวต่อไปนะ":"เสียหัวใจ 1 ดวง");
+        if(this.hp<=0&&this.game.mode!=="practice"){this.finish(false);return;}
+        if(this.questionCursor<this.questions.length)this.addEnemy(0);this.setQuestion();this.updateHud();
+      },420);this.pendingTimers.add(timer);
     }
     updateTimer(){const pct=this.questionTime?Math.max(0,this.timeLeft/this.questionTime):1;$("battle-timer").textContent=this.questionTime?Math.ceil(this.timeLeft):"∞";$("timer-ring").style.strokeDashoffset=String(113*(1-pct));}
     updateHud(){
@@ -193,7 +200,7 @@
       const result={victory,stageId:this.stage.id,stageName:this.stage.name,score:this.score,accuracy,correct:this.correct,wrong:this.wrong,bestCombo:this.bestCombo,time:elapsed,stars:victory?stars:0,xp:victory?(this.stage.rewardXP||50):0,coins:victory?(this.stage.rewardCoins||20):0};
       if(victory)window.DrawHero.Audio.play("victory");if(this.onFinish)this.onFinish(result);
     }
-    stop(){this.running=false;cancelAnimationFrame(this.raf);this.enemies=[];if($("enemy-layer"))$("enemy-layer").innerHTML="";if($("projectile-layer"))$("projectile-layer").innerHTML="";if(this.board){this.board.destroy();this.board=null;}}
+    stop(){this.running=false;this.paused=false;cancelAnimationFrame(this.raf);clearTimeout(this.heroActionTimer);this.pendingTimers.forEach(timer=>clearTimeout(timer));this.pendingTimers.clear();this.enemies=[];if($("enemy-layer"))$("enemy-layer").innerHTML="";if($("projectile-layer"))$("projectile-layer").innerHTML="";if($("pause-modal"))$("pause-modal").hidden=true;if($("tutorial-modal"))$("tutorial-modal").hidden=true;if($("battlefield"))$("battlefield").classList.remove("skill-burst");if(this.board){this.board.destroy();this.board=null;}}
   }
   window.DrawHero.BattleEngine=BattleEngine;
 })();
