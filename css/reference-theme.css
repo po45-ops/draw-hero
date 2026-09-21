@@ -151,3 +151,11 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
   .model-stage{inset:38px 5px 122px;grid-template-columns:42px minmax(0,1fr) 42px}.model-rotate{width:38px;height:56px}.model-controls{max-width:94%;overflow-x:auto}.model-controls button{padding:4px 8px}.model-angle-label{top:43px;right:9px}.model-badge{left:9px;top:9px}.hero-model-sprite{width:100%}
 }
 @media(max-width:430px){.model-controls button{font-size:.62rem;padding:3px 6px}.model-angle-label{font-size:.6rem}.model-stage{grid-template-columns:34px minmax(0,1fr) 34px}.model-rotate{width:32px;height:50px}}
+
+/* Compact, vertically balanced player profile */
+.topbar .profile-chip{align-self:center;width:205px;min-width:205px;height:52px;padding:4px 11px;gap:9px;line-height:1;border-color:#314765}
+.topbar .profile-chip .avatar-mini{flex:0 0 40px;width:40px;height:40px;font-size:.88rem;line-height:1;box-shadow:0 0 10px #37b9ff38}
+.topbar .profile-chip>span:last-child{min-width:0;justify-content:center;gap:3px;line-height:1}
+.topbar .profile-chip b{overflow:hidden;max-width:132px;font-size:.84rem;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.topbar .profile-chip small{font-size:.68rem;line-height:1;color:#8fa8c0}
+@media(max-width:760px){.topbar .profile-chip{width:auto;min-width:0;height:48px;padding:3px 8px}.topbar .profile-chip .avatar-mini{flex-basis:36px;width:36px;height:36px}.topbar .profile-chip b{max-width:92px;font-size:.78rem}}
