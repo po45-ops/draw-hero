@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#071426">
+  <meta name="description" content="DRAW HERO เกมฝึกวาดและเขียนเพื่อพิชิตเหล่าปีศาจแห่งความรู้">
+  <title>DRAW HERO — วาด • คิด • พิชิตปีศาจ</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='14' width='64' height='64' fill='%23071426'/%3E%3Cpath d='M32 7l6 17 18 7-18 7-6 19-6-19-18-7 18-7z' fill='%2337b9ff' stroke='%23d5a942' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/reference-theme.css">
+</head>
+<body>
+  <noscript><div class="fatal-message">เกมนี้ต้องเปิดใช้งาน JavaScript ในเบราว์เซอร์</div></noscript>
+
+  <div id="app" class="app-shell">
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <section id="screen-splash" class="screen splash-screen active" data-screen="splash" aria-label="กำลังเปิดเกม">
+      <div class="splash-rune" aria-hidden="true"><span>✦</span></div>
+      <div class="game-logo compact"><span class="logo-draw">DRAW</span><span class="logo-hero">HERO</span></div>
+      <p>Every line you draw is a brighter tomorrow.</p>
+      <div class="loading-bar"><i></i></div>
+    </section>
+
+    <section id="screen-main" class="screen main-screen" data-screen="main">
+      <div class="night-sky" aria-hidden="true"><i class="moon"></i><i class="stars"></i><i class="castle"></i></div>
+      <header class="topbar glass-panel">
+        <button class="profile-chip" id="player-profile-button" aria-label="แก้ไขชื่อผู้เล่น">
+          <span class="avatar-mini">DH</span>
+          <span><b id="player-name">ผู้กล้าน้อย</b><small>Lv. <span id="player-level">1</span></small></span>
+        </button>
+        <div class="player-xp"><span>EXP</span><div class="meter"><i id="xp-fill"></i></div><small id="xp-text">0 / 100</small></div>
+        <div class="currency"><span class="coin-icon">●</span><b id="coin-count">120</b></div>
+        <div class="currency"><span class="gem-icon">◆</span><b id="gem-count">3</b></div>
+        <button class="icon-button" data-nav="settings" aria-label="ตั้งค่า">⚙</button>
+      </header>
+
+      <div class="main-layout">
+        <nav class="main-menu stone-panel" aria-label="เมนูหลัก">
+          <button class="menu-button primary" id="start-button"><span class="menu-glyph">▶</span><span data-i18n="start">เริ่มเกม</span></button>
+          <button class="menu-button" data-nav="characters"><span class="menu-glyph">♜</span><span data-i18n="characters">เลือกตัวละคร</span></button>
+          <button class="menu-button" data-nav="modes"><span class="menu-glyph">✦</span><span data-i18n="modes">โหมดการเล่น</span></button>
+          <button class="menu-button" data-nav="content"><span class="menu-glyph">▤</span><span data-i18n="library">คลังเนื้อหา</span></button>
+          <button class="menu-button" data-nav="missions"><span class="menu-glyph">✓</span><span data-i18n="missions">ภารกิจ</span></button>
+          <a class="menu-button button-link" href="./creator.html"><span class="menu-glyph">⚒</span><span data-i18n="creator">ผู้สร้างด่าน</span></a>
+          <button class="menu-button" data-nav="settings"><span class="menu-glyph">⚙</span><span data-i18n="settings">ตั้งค่า</span></button>
+        </nav>
+
+        <main class="hero-stage" aria-labelledby="main-title">
+          <div class="game-logo" id="main-title"><span class="logo-draw">DRAW</span><span class="logo-hero">HERO</span></div>
+          <p class="tagline">วาด • คิด • พิชิตปีศาจ</p>
+          <div id="hero-party" class="hero-party" aria-label="กลุ่มตัวละคร"></div>
+          <div class="start-callout"><span>วาดให้ถูก</span><i>•</i><span>คิดให้ไว</span><i>•</i><span>พิชิตทุกความรู้</span></div>
+        </main>
+
+        <aside class="quest-sidebar quick-dock" aria-label="เมนูด่วน">
+          <button data-nav="missions"><span>♛</span><b>ภารกิจ</b></button>
+          <button data-nav="content"><span>▣</span><b>กระเป๋า</b></button>
+          <button data-nav="missions"><span>♜</span><b>อันดับ</b></button>
+          <a href="./creator.html"><span>▤</span><b>กิจกรรม</b></a>
+          <div class="dock-stars"><span>★</span><b id="total-stars">2</b></div>
+        </aside>
+      </div>
+      <footer class="main-footer">รองรับ Mouse • Touch • Stylus <span>เวอร์ชัน 1.0</span></footer>
+    </section>
+
+    <section id="screen-modes" class="screen sub-screen" data-screen="modes">
+      <header class="screen-header"><button class="back-button" data-back="main">‹</button><div><small>CHOOSE YOUR PATH</small><h1>เลือกโหมดการเล่น</h1></div></header>
+      <div id="mode-grid" class="card-grid mode-grid"></div>
+    </section>
+
+    <section id="screen-characters" class="screen sub-screen" data-screen="characters">
+      <header class="screen-header"><button class="back-button" data-back="main">‹</button><div><small>HERO HALL</small><h1>เลือกตัวละคร</h1></div></header>
+      <div class="character-select-layout">
+        <button id="character-prev" class="carousel-arrow" aria-label="ตัวละครก่อนหน้า">‹</button>
+        <div id="character-showcase" class="character-showcase"></div>
+        <button id="character-next" class="carousel-arrow" aria-label="ตัวละครถัดไป">›</button>
+        <aside id="character-info" class="character-info stone-panel"></aside>
+      </div>
+      <div class="screen-actions"><button id="select-character" class="fantasy-button primary">เลือกตัวละคร</button></div>
+    </section>
+
+    <section id="screen-difficulty" class="screen sub-screen" data-screen="difficulty">
+      <header class="screen-header"><button class="back-button" data-back="characters">‹</button><div><small>CHOOSE YOUR CHALLENGE</small><h1>เลือกระดับความยาก</h1></div></header>
+      <div id="difficulty-grid" class="card-grid difficulty-grid"></div>
+    </section>
+
+    <section id="screen-map" class="screen sub-screen map-screen" data-screen="map">
+      <header class="screen-header"><button class="back-button" data-back="difficulty">‹</button><div><small>STORY ADVENTURE</small><h1>แผนที่การผจญภัย</h1></div><div class="map-stars">★ <span id="map-star-total">0</span></div></header>
+      <div id="world-map" class="world-map" aria-label="แผนที่โลก"></div>
+      <div id="stage-list" class="stage-list"></div>
+    </section>
+
+    <section id="screen-practice" class="screen sub-screen" data-screen="practice">
+      <header class="screen-header"><button class="back-button" data-back="difficulty">‹</button><div><small>TRAINING ROOM</small><h1>ตั้งค่าการฝึก</h1></div></header>
+      <form id="practice-form" class="setup-form stone-panel">
+        <label>ภาษา<select id="practice-language"><option value="th">ภาษาไทย</option><option value="en">English</option><option value="any">ผสม</option></select></label>
+        <label>ประเภทเนื้อหา<select id="practice-type"></select></label>
+        <label>จำนวนข้อ<select id="practice-count"><option>5</option><option selected>10</option><option>20</option><option>30</option></select></label>
+        <label>เส้นช่วยเขียน<select id="practice-guide"><option value="full">แสดงแบบเต็ม</option><option value="dotted">เส้นประ</option><option value="fade">แสดงแล้วจาง</option><option value="none">ไม่แสดง</option></select></label>
+        <label>เวลาต่อข้อ<select id="practice-time"><option value="0">ไม่จำกัด</option><option value="12" selected>12 วินาที</option><option value="9">9 วินาที</option><option value="7">7 วินาที</option></select></label>
+        <div class="form-wide setup-summary"><span>โหมดฝึกไม่มี Game Over และ Hint ใช้ได้ไม่จำกัด</span></div>
+        <button class="fantasy-button primary form-wide" type="submit">เริ่มฝึกเขียน</button>
+      </form>
+    </section>
+
+    <section id="screen-content" class="screen sub-screen" data-screen="content">
+      <header class="screen-header"><button class="back-button" data-back="main">‹</button><div><small>KNOWLEDGE VAULT</small><h1>คลังเนื้อหา</h1></div></header>
+      <div id="content-library" class="content-library"></div>
+    </section>
+
+    <section id="screen-missions" class="screen sub-screen" data-screen="missions">
+      <header class="screen-header"><button class="back-button" data-back="main">‹</button><div><small>HERO JOURNAL</small><h1>ภารกิจและความสำเร็จ</h1></div></header>
+      <div class="mission-board stone-panel">
+        <article><span>✎</span><div><h2>นักวาดฝึกหัด</h2><p>ตอบถูก 10 ครั้ง</p><div class="meter"><i id="mission-correct-fill"></i></div></div><b id="mission-correct-text">0 / 10</b></article>
+        <article><span>⚔</span><div><h2>ผู้พิทักษ์หมู่บ้าน</h2><p>ผ่านด่านเนื้อเรื่อง 1 ด่าน</p><div class="meter"><i id="mission-stage-fill"></i></div></div><b id="mission-stage-text">0 / 1</b></article>
+        <article><span>🔥</span><div><h2>พลังแห่งสมาธิ</h2><p>ทำ Combo x5</p><div class="meter"><i id="mission-combo-fill"></i></div></div><b id="mission-combo-text">0 / 5</b></article>
+      </div>
+    </section>
+
+    <section id="screen-custom" class="screen sub-screen" data-screen="custom">
+      <header class="screen-header"><button class="back-button" data-back="modes">‹</button><div><small>CREATOR PACKS</small><h1>ด่านที่สร้างเอง</h1></div></header>
+      <div id="custom-stage-list" class="custom-stage-list"></div>
+      <div class="screen-actions"><a class="fantasy-button button-link" href="./creator.html">เปิดผู้สร้างด่าน</a></div>
+    </section>
+
+    <section id="screen-settings" class="screen sub-screen" data-screen="settings">
+      <header class="screen-header"><button class="back-button" data-back="main">‹</button><div><small>GAME OPTIONS</small><h1>ตั้งค่า</h1></div></header>
+      <form id="settings-form" class="settings-panel stone-panel">
+        <label class="toggle-row"><span><b>เสียงเอฟเฟกต์</b><small>เสียงปุ่ม เวทมนตร์ และการโจมตี</small></span><input id="setting-sound" type="checkbox"><i></i></label>
+        <label class="toggle-row"><span><b>เพลงประกอบ</b><small>บรรยากาศแฟนตาซีระหว่างเล่น</small></span><input id="setting-music" type="checkbox"><i></i></label>
+        <label class="range-row"><span><b>ระดับเสียงเอฟเฟกต์</b><output id="effects-volume-value">70%</output></span><input id="setting-effects-volume" type="range" min="0" max="100"></label>
+        <label class="range-row"><span><b>ระดับเสียงเพลง</b><output id="music-volume-value">40%</output></span><input id="setting-music-volume" type="range" min="0" max="100"></label>
+        <label class="select-row"><span><b>ภาษา</b><small>ภาษาของเมนูเกม</small></span><select id="setting-language"><option value="th">ไทย</option><option value="en">English</option></select></label>
+        <label class="toggle-row"><span><b>ลดการเคลื่อนไหว</b><small>ลดเอฟเฟกต์สำหรับผู้ไวต่อภาพเคลื่อนไหว</small></span><input id="setting-reduced-motion" type="checkbox"><i></i></label>
+        <label class="toggle-row"><span><b>แสดงเส้นช่วยเขียน</b><small>แสดงแบบตัวอย่างบนกระดาน</small></span><input id="setting-show-guide" type="checkbox"><i></i></label>
+        <button class="fantasy-button danger" id="reset-progress" type="button">ลบข้อมูลความก้าวหน้า</button>
+      </form>
+    </section>
+
+    <section id="screen-battle" class="screen battle-screen" data-screen="battle">
+      <header class="battle-hud">
+        <button id="pause-button" class="icon-button" aria-label="หยุดเกมชั่วคราว">Ⅱ</button>
+        <div class="hud-stage"><small id="battle-world">WORLD 1</small><b id="battle-stage-name">เส้นแห่งเวทมนตร์</b></div>
+        <div class="hud-value hearts" id="battle-hearts" aria-label="พลังชีวิต">♥ ♥ ♥</div>
+        <div class="hud-value"><small>SCORE</small><b id="battle-score">0</b></div>
+        <div class="hud-value combo"><small>COMBO</small><b id="battle-combo">x0</b></div>
+        <div class="hud-timer"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18"></circle><circle id="timer-ring" cx="22" cy="22" r="18"></circle></svg><b id="battle-timer">12</b></div>
+        <div class="hud-value"><small>WAVE</small><b id="battle-wave">1/5</b></div>
+      </header>
+
+      <div id="battlefield" class="battlefield">
+        <div class="battle-moon" aria-hidden="true"></div>
+        <div id="player-unit" class="player-unit"></div>
+        <div id="enemy-layer" class="enemy-layer"></div>
+        <div id="projectile-layer" class="projectile-layer"></div>
+        <div class="distance-line"><span>ฐานฮีโร่</span><i></i><span>ประตูมิติ</span></div>
+        <div id="battle-message" class="battle-message" aria-live="polite"></div>
+      </div>
+
+      <div class="drawing-deck">
+        <aside class="target-panel">
+          <small>เป้าหมายเวทมนตร์</small>
+          <div id="target-display" class="target-display">○</div>
+          <div id="character-slots" class="character-slots"></div>
+          <p id="target-hint">วาดตามสัญลักษณ์</p>
+          <div class="accuracy-meter"><span>พลังตรวจจับ</span><div class="meter"><i id="accuracy-fill"></i></div><b id="accuracy-value">—</b></div>
+          <div id="debug-panel" class="debug-panel" hidden></div>
+        </aside>
+
+        <main class="canvas-wrap">
+          <canvas id="drawing-canvas" width="720" height="420" aria-label="กระดานวาดเวทมนตร์"></canvas>
+          <div class="canvas-corner tl"></div><div class="canvas-corner tr"></div><div class="canvas-corner bl"></div><div class="canvas-corner br"></div>
+          <div class="canvas-toolbar">
+            <button id="pen-tool" class="tool-button active" aria-label="ปากกา">✎ <span>ปากกา</span></button>
+            <button id="eraser-tool" class="tool-button" aria-label="ยางลบ">▱ <span>ยางลบ</span></button>
+            <label class="stroke-control">ขนาด <input id="stroke-width" type="range" min="4" max="30" value="13"></label>
+            <button id="undo-drawing" class="tool-button" aria-label="ย้อนกลับ">↶</button>
+            <button id="redo-drawing" class="tool-button" aria-label="ทำซ้ำ">↷</button>
+            <button id="clear-drawing" class="tool-button" aria-label="ล้างกระดาน">⌫ <span>ล้าง</span></button>
+          </div>
+        </main>
+
+        <aside class="spell-controls">
+          <button id="cast-spell" class="cast-button"><span class="cast-rune">✦</span><b>ร่ายเวท</b><small>CAST SPELL</small></button>
+          <button id="hint-button" class="side-action"><span>?</span><b>คำใบ้</b><small id="hint-count">1 / wave</small></button>
+          <button id="skill-button" class="side-action skill-action"><span id="skill-icon">✺</span><b id="skill-name">Magic Burst</b><div class="skill-gauge"><i id="skill-fill"></i></div></button>
+        </aside>
+      </div>
+    </section>
+
+    <div id="pause-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+      <div class="modal-card stone-panel"><small>BATTLE PAUSED</small><h2 id="pause-title">หยุดพักการผจญภัย</h2><button id="resume-button" class="fantasy-button primary">เล่นต่อ</button><button id="restart-button" class="fantasy-button">เริ่มด่านใหม่</button><button id="quit-battle-button" class="fantasy-button danger">กลับหน้าหลัก</button></div>
+    </div>
+
+    <section id="screen-result" class="screen result-screen" data-screen="result">
+      <div class="result-card stone-panel"><small>STAGE COMPLETE</small><h1>VICTORY</h1><div id="result-stars" class="result-stars">★★★</div><h2 id="result-stage-name">เส้นแห่งเวทมนตร์</h2><div class="result-grid"><div><small>SCORE</small><b id="result-score">0</b></div><div><small>ACCURACY</small><b id="result-accuracy">0%</b></div><div><small>CORRECT</small><b id="result-correct">0</b></div><div><small>WRONG</small><b id="result-wrong">0</b></div><div><small>BEST COMBO</small><b id="result-combo">x0</b></div><div><small>TIME</small><b id="result-time">0:00</b></div></div><div class="rewards"><span>✦ <b id="result-xp">+0 XP</b></span><span>● <b id="result-coins">+0</b></span></div><div class="result-actions"><button id="replay-button" class="fantasy-button">เล่นอีกครั้ง</button><button id="next-stage-button" class="fantasy-button primary">ด่านถัดไป</button><button id="result-map-button" class="fantasy-button">กลับแผนที่</button></div></div>
+    </section>
+
+    <section id="screen-gameover" class="screen result-screen gameover-screen" data-screen="gameover">
+      <div class="result-card stone-panel"><small>THE DARKNESS PREVAILS</small><h1>GAME OVER</h1><p>ไม่เป็นไร ลองวาดใหม่อีกครั้งนะ!</p><div class="result-grid two"><div><small>SCORE</small><b id="gameover-score">0</b></div><div><small>BEST SCORE</small><b id="gameover-best">0</b></div></div><div class="result-actions"><button id="retry-button" class="fantasy-button primary">ลองอีกครั้ง</button><button id="gameover-home-button" class="fantasy-button">กลับหน้าหลัก</button></div></div>
+    </section>
+
+    <div id="tutorial-modal" class="modal tutorial-modal" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" hidden>
+      <div class="modal-card stone-panel"><small>HOW TO PLAY</small><h2 id="tutorial-title">พลังเวทอยู่ที่ปลายปากกา!</h2><div id="tutorial-visual" class="tutorial-visual">✎ <span>→</span> ✦ <span>→</span> ⚔</div><p id="tutorial-text">ดูโจทย์เหนือหัวศัตรู แล้ววาดตามบนกระดานเวทมนตร์</p><div class="tutorial-dots"><i class="active"></i><i></i><i></i><i></i></div><button id="tutorial-next" class="fantasy-button primary">ถัดไป</button><button id="tutorial-skip" class="text-button">ข้ามคำแนะนำ</button></div>
+    </div>
+  </div>
+
+  <script src="./js/storage.js"></script>
+  <script src="./js/characters.js"></script>
+  <script src="./js/skills.js"></script>
+  <script src="./js/enemies.js"></script>
+  <script src="./js/content.js"></script>
+  <script src="./js/levels.js"></script>
+  <script src="./js/audio.js"></script>
+  <script src="./js/recognizer.js"></script>
+  <script src="./js/drawing.js"></script>
+  <script src="./js/game.js"></script>
+  <script src="./js/battle.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

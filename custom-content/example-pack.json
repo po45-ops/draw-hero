@@ -1,0 +1,18 @@
+{
+  "schema": "draw-hero-content-pack",
+  "schemaVersion": 1,
+  "id": "example-thai-grade1",
+  "name": "ตัวอย่างพยัญชนะไทย",
+  "author": "DRAW HERO Team",
+  "version": "1.0.0",
+  "description": "Content Pack ตัวอย่างสำหรับฝึกเขียน ก ข ค",
+  "questions": [
+    {"id":"demo_kor","type":"thai_letter","language":"th","display":"ก","answer":"ก","difficulty":"easy","guideMode":"full","recognitionMode":"raster","threshold":45,"timeLimit":12,"hint":"ก ไก่","reward":100},
+    {"id":"demo_khor","type":"thai_letter","language":"th","display":"ข","answer":"ข","difficulty":"easy","guideMode":"full","recognitionMode":"raster","threshold":45,"timeLimit":12,"hint":"ข ไข่","reward":100},
+    {"id":"demo_kho","type":"thai_letter","language":"th","display":"ค","answer":"ค","difficulty":"easy","guideMode":"full","recognitionMode":"raster","threshold":45,"timeLimit":12,"hint":"ค ควาย","reward":100}
+  ],
+  "stages": [
+    {"id":"demo_thai_1","name":"ก ข ค แสนสนุก","description":"ด่านตัวอย่างจากไฟล์ JSON","world":2,"level":1,"contentType":"thai_letter","language":"th","difficulty":"easy","timeLimit":12,"enemySpeed":0.8,"enemyTypes":["goblin"],"enemyCount":3,"questions":["demo_kor","demo_khor","demo_kho"],"rewardXP":50,"rewardCoins":20,"guideMode":"full","recognitionThreshold":45,"boss":false}
+  ],
+  "templates": {}
+}

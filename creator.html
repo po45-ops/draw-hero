@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071426">
+  <title>DRAW HERO — ผู้สร้างด่าน</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='14' width='64' height='64' fill='%23071426'/%3E%3Cpath d='M32 7l6 17 18 7-18 7-6 19-6-19-18-7 18-7z' fill='%2337b9ff' stroke='%23d5a942' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/reference-theme.css">
+</head>
+<body class="creator-body">
+  <div class="creator-shell">
+    <aside class="creator-sidebar">
+      <div class="creator-brand">DRAW HERO<small>CREATOR STUDIO</small></div>
+      <nav class="creator-nav" aria-label="เมนูผู้สร้างด่าน">
+        <button class="active" data-panel="stage-editor">✦ สร้างด่านใหม่</button>
+        <button data-panel="stage-manager">▤ จัดการด่าน</button>
+        <button data-panel="question-editor">✎ สร้างคำถาม</button>
+        <button data-panel="question-manager">☷ จัดการคำถาม</button>
+        <button data-panel="pack-editor">⬡ สร้าง Content Pack</button>
+        <button data-panel="import-export">⇄ Import / Export JSON</button>
+        <button id="preview-nav">▶ Preview Stage</button>
+        <button data-panel="template-recorder">◎ Template Recorder</button>
+        <a href="./index.html">‹ กลับเข้าเกม</a>
+      </nav>
+    </aside>
+
+    <main class="creator-main">
+      <header class="creator-topbar"><div><small>LOCAL CONTENT TOOL</small><h1 id="creator-title">สร้างด่านใหม่</h1></div><div class="creator-status" id="creator-status">● บันทึกในเครื่องแล้ว</div></header>
+
+      <section id="panel-stage-editor" class="creator-panel active" data-title="สร้างด่านใหม่">
+        <div class="editor-grid">
+          <form id="stage-form" class="editor-card">
+            <h2>รายละเอียดด่าน</h2>
+            <div class="field-grid">
+              <label class="wide">ชื่อด่าน<input id="stage-name" required value="ด่านฝึกเวทของฉัน" maxlength="80"></label>
+              <label class="wide">คำอธิบาย<textarea id="stage-description">ฝึกเขียนและพิชิตเหล่าก็อบลิน</textarea></label>
+              <label>โลก<select id="stage-world"><option value="1">World 1 — หมู่บ้าน</option><option value="2">World 2 — ป่าอักษร</option><option value="3">World 3 — ทะเลทราย</option><option value="4">World 4 — หอคอย</option><option value="5">World 5 — เมืองน้ำแข็ง</option><option value="6">World 6 — ปราสาท</option></select></label>
+              <label>ประเภทเนื้อหา<select id="stage-content-type"><option>thai_letter</option><option>english_letter</option><option>thai_word</option><option>english_word</option><option>number</option><option>shape</option><option>line</option><option>mixed</option></select></label>
+              <label>ภาษา<select id="stage-language"><option value="th">ไทย</option><option value="en">English</option><option value="mixed">ผสม</option></select></label>
+              <label>ระดับ<select id="stage-difficulty"><option value="easy">ง่าย</option><option value="normal" selected>ปานกลาง</option><option value="hard">ยาก</option><option value="challenge">ท้าทาย</option></select></label>
+              <label>เวลาต่อข้อ (วินาที)<input id="stage-time" type="number" min="0" max="120" value="9"></label>
+              <label>ความเร็วศัตรู<input id="stage-speed" type="number" min="0.2" max="4" step="0.1" value="1"></label>
+              <label>ชนิดศัตรู<select id="stage-enemy"><option value="goblin">Goblin</option><option value="skeleton">Skeleton</option><option value="orc">Orc</option><option value="shadow">Shadow</option><option value="ghost">Flying Ghost</option><option value="armoredDemon">Armored Demon</option><option value="bossDemon">Boss Demon</option></select></label>
+              <label>จำนวนศัตรู<input id="stage-enemy-count" type="number" min="1" max="30" value="5"></label>
+              <label>Reward XP<input id="stage-xp" type="number" min="0" value="50"></label>
+              <label>Reward Coins<input id="stage-coins" type="number" min="0" value="20"></label>
+              <label>Guide Mode<select id="stage-guide"><option value="full">Full Guide</option><option value="dotted" selected>Dotted</option><option value="fade">Fade</option><option value="none">None</option></select></label>
+              <label>Recognition Threshold<input id="stage-threshold" type="number" min="20" max="95" value="55"></label>
+              <label>Boss Battle<select id="stage-boss"><option value="false">ไม่ใช่</option><option value="true">ใช่</option></select></label>
+              <label class="wide">คำถามในด่าน<select id="stage-questions" multiple size="7"></select><small>กด Ctrl / Cmd เพื่อเลือกหลายข้อ</small></label>
+            </div>
+            <div class="form-actions"><button class="fantasy-button primary" type="submit">บันทึกด่าน</button><button id="stage-clear" class="fantasy-button" type="button">ล้างฟอร์ม</button><button id="stage-preview" class="fantasy-button" type="button">Preview</button></div>
+          </form>
+          <aside class="editor-card">
+            <h2>ภาพรวม Content Pack</h2>
+            <div class="pack-summary"><div><small>ด่าน</small><b id="summary-stages">0</b></div><div><small>คำถาม</small><b id="summary-questions">0</b></div><div><small>Templates</small><b id="summary-templates">0</b></div></div>
+            <h3>ขั้นตอนที่แนะนำ</h3>
+            <ol><li>สร้างคำถามอย่างน้อย 1 ข้อ</li><li>เลือกคำถามใส่ในด่าน</li><li>บันทึกแล้วกด Preview</li><li>Export JSON เพื่อนำไปใช้เครื่องอื่น</li></ol>
+            <p>ข้อมูลจะเก็บใน LocalStorage ของ Browser นี้ ครูสามารถ Export เป็นไฟล์เพื่อสำรองหรือนำเข้าเกมได้</p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="panel-stage-manager" class="creator-panel" data-title="จัดการด่าน">
+        <div class="editor-card"><h2>ด่านใน Pack ปัจจุบัน</h2><div class="table-scroll"><table class="question-table"><thead><tr><th>ชื่อด่าน</th><th>ประเภท</th><th>ความยาก</th><th>คำถาม</th><th>จัดการ</th></tr></thead><tbody id="stage-table-body"></tbody></table></div></div>
+      </section>
+
+      <section id="panel-question-editor" class="creator-panel" data-title="สร้างคำถาม">
+        <div class="editor-grid">
+          <form id="question-form" class="editor-card"><h2>รายละเอียดคำถาม</h2><div class="field-grid">
+            <label>โจทย์<input id="question-display" required placeholder="เช่น ก หรือ cat"></label><label>คำตอบ<input id="question-answer" required placeholder="คำตอบที่ต้องเขียน"></label>
+            <label>ภาษา<select id="question-language"><option value="th">ไทย</option><option value="en">English</option><option value="number">ตัวเลข</option><option value="symbol">สัญลักษณ์</option></select></label>
+            <label>ประเภท<select id="question-type"><option>thai_letter</option><option>english_letter</option><option>thai_word</option><option>english_word</option><option>number</option><option>shape</option><option>line</option><option>mixed</option></select></label>
+            <label class="wide">คำใบ้<input id="question-hint" placeholder="ข้อความช่วยผู้เรียน"></label>
+            <label>ระดับ<select id="question-difficulty"><option value="easy">ง่าย</option><option value="normal" selected>ปานกลาง</option><option value="hard">ยาก</option><option value="challenge">ท้าทาย</option></select></label>
+            <label>เวลา<input id="question-time" type="number" min="0" max="120" value="9"></label>
+            <label>Recognition<select id="question-recognition"><option value="raster">Raster Similarity</option><option value="geometry">Shape Geometry</option></select></label>
+            <label>Guide<select id="question-guide"><option value="full">Full</option><option value="dotted" selected>Dotted</option><option value="fade">Fade</option><option value="none">None</option></select></label>
+            <label>Threshold<input id="question-threshold" type="number" min="20" max="95" value="55"></label><label>คะแนน<input id="question-reward" type="number" min="0" value="100"></label>
+          </div><div class="form-actions"><button class="fantasy-button primary" type="submit">เพิ่มคำถาม</button><button id="question-clear" class="fantasy-button" type="button">ล้างฟอร์ม</button></div></form>
+          <aside class="editor-card"><h2>ตัวอย่าง Question Schema</h2><pre id="question-preview">{}</pre><p>คำหรือวลีหลายตัวจะถูกแบ่งเป็นช่องให้ผู้เรียนเขียนทีละตัวอักษรอัตโนมัติ</p></aside>
+        </div>
+      </section>
+
+      <section id="panel-question-manager" class="creator-panel" data-title="จัดการคำถาม">
+        <div class="editor-card"><h2>คำถามใน Pack ปัจจุบัน</h2><div class="table-scroll"><table class="question-table"><thead><tr><th>โจทย์</th><th>คำตอบ</th><th>ประเภท</th><th>Threshold</th><th>จัดการ</th></tr></thead><tbody id="question-table-body"></tbody></table></div></div>
+      </section>
+
+      <section id="panel-pack-editor" class="creator-panel" data-title="สร้าง Content Pack">
+        <form id="pack-form" class="editor-card"><h2>ข้อมูล Content Pack</h2><div class="field-grid"><label class="wide">ชื่อ Pack<input id="pack-name" value="ชุดฝึกเขียนของฉัน" required></label><label>ผู้สร้าง<input id="pack-author" value="คุณครู"></label><label>เวอร์ชัน<input id="pack-version" value="1.0.0"></label><label class="wide">คำอธิบาย<textarea id="pack-description">Content Pack สำหรับ DRAW HERO</textarea></label></div><div class="form-actions"><button class="fantasy-button primary" type="submit">บันทึกข้อมูล Pack</button><button id="new-pack" class="fantasy-button danger" type="button">สร้าง Pack ใหม่</button></div></form>
+      </section>
+
+      <section id="panel-import-export" class="creator-panel" data-title="Import / Export JSON">
+        <div class="editor-grid">
+          <div class="editor-card"><h2>Import JSON</h2><div class="import-zone"><p>เลือกไฟล์ Content Pack ที่ Export จาก DRAW HERO</p><input id="import-file" type="file" accept="application/json,.json"></div><div id="import-message"></div></div>
+          <div class="editor-card"><h2>Export JSON</h2><p>ดาวน์โหลดด่าน คำถาม และ Template ทั้งหมดใน Pack ปัจจุบัน</p><button id="export-pack" class="fantasy-button primary">ดาวน์โหลด Content Pack</button><button id="copy-json" class="fantasy-button">คัดลอก JSON</button><div id="export-message"></div></div>
+        </div>
+      </section>
+
+      <section id="panel-template-recorder" class="creator-panel" data-title="Template Recorder">
+        <div class="recorder-layout">
+          <aside class="editor-card"><h2>บันทึกลายมือ</h2><label>ตัวอักษร / สัญลักษณ์<input id="template-label" value="ก" maxlength="4"></label><p>วาดตัวอย่าง 3 ครั้ง แล้วบันทึกแต่ละครั้ง ระบบจะเก็บภาพ Template ไว้ใน Pack</p><div class="pack-summary"><div><small>ตัวอย่างนี้</small><b id="template-sample-count">0 / 3</b></div></div><div class="form-actions"><button id="save-template" class="fantasy-button primary">บันทึกตัวอย่าง</button><button id="clear-template" class="fantasy-button">ล้าง</button></div></aside>
+          <div class="template-canvas-wrap"><canvas id="template-canvas" width="720" height="420" aria-label="กระดานบันทึกตัวอย่างลายมือ"></canvas></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/storage.js"></script>
+  <script src="./js/drawing.js"></script>
+  <script src="./js/creator.js"></script>
+</body>
+</html>
