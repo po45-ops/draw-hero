@@ -177,4 +177,5 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
 .difficulty-card .difficulty-diamonds i{position:relative;width:40px;height:36px;flex:0 0 40px;background:linear-gradient(135deg,#effcff 0 14%,#8fe9ff 15% 34%,var(--card-color) 35% 68%,#eaffff 69% 78%,color-mix(in srgb,var(--card-color) 65%,#13233e));clip-path:polygon(22% 0,78% 0,100% 34%,50% 100%,0 34%);filter:drop-shadow(0 4px 5px #0009) drop-shadow(0 0 7px color-mix(in srgb,var(--card-color) 70%,transparent))}
 .difficulty-card .difficulty-diamonds i:before{content:"";position:absolute;left:7%;right:7%;top:32%;height:2px;background:#eaffffb8;box-shadow:0 5px 9px #ffffff42;transform:rotate(-1deg)}
 .difficulty-card .difficulty-diamonds i:after{content:"";position:absolute;left:49%;top:0;width:2px;height:78%;background:linear-gradient(#ffffffb8,transparent);transform:rotate(28deg);transform-origin:top}
-.difficulty-card .difficulty-crown{filter:drop-shadow(0 4px 5px #0009) drop-shadow(0 0 8px #e7484880)}
+.difficulty-card .difficulty-crown{display:flex;align-items:center;justify-content:center;height:52px;margin:0}
+.difficulty-card .difficulty-crown svg{width:64px;height:52px;overflow:visible;filter:drop-shadow(0 5px 5px #000a) drop-shadow(0 0 9px #ffc64d99)}
