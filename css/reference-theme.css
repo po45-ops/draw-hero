@@ -217,3 +217,37 @@ body.reduced-motion .enemy-unit.is-warning .target-bubble,body.reduced-motion .e
   .spell-controls{height:68px;grid-template-columns:1.12fr 1fr 1fr;grid-template-rows:68px;gap:6px}.cast-button{grid-column:auto;grid-row:auto;width:100%;max-width:none;height:68px;min-height:68px;aspect-ratio:auto;border:2px solid #57d6ff;border-radius:7px;clip-path:none;background:linear-gradient(145deg,#0d9df1,#0752bd 55%,#08275f);box-shadow:0 0 0 2px #07101d,0 0 10px #158cff,inset 0 1px 8px #fff4}.cast-rune{font-size:1.25rem}.cast-button b{font-size:.88rem}.cast-button small{font-size:.48rem}.side-action{height:68px;min-height:68px;padding:3px;border-radius:7px}.side-action>span{font-size:1rem}.side-action b{font-size:.72rem}.side-action small{font-size:.5rem}
 }
 @media(max-width:360px){.battle-hud{grid-template-columns:36px minmax(74px,1fr) 82px 42px 40px;padding-inline:4px}.battle-hud .hearts{min-width:82px;font-size:.9rem}.drawing-deck{padding:4px;gap:4px}.spell-controls{gap:4px}.cast-button b,.side-action b{font-size:.66rem}}
+
+/* Phone selection screens: keep emblems separate and make every option readable. */
+@media(max-width:600px){
+  #screen-modes .mode-grid{grid-template-columns:1fr;gap:12px}
+  #screen-modes .select-card{min-height:232px;padding:132px 14px 30px;background-size:auto 54%,auto,auto 54%,auto}
+  #screen-modes .select-card:before{top:51%}
+  #screen-modes .select-card .card-icon{top:61px;font-size:2.35rem;transform:translateX(-50%) translateZ(24px)}
+  #screen-modes .select-card h2{margin:0 0 2px;font-size:1.18rem;line-height:1.25}
+  #screen-modes .select-card h3{margin:1px 0 5px;font-size:.72rem;line-height:1.25}
+  #screen-modes .select-card p{max-width:30rem;margin:0 auto;font-size:.78rem;line-height:1.35}
+  #screen-modes .select-card small{bottom:9px}
+
+  #screen-difficulty .difficulty-grid{grid-template-columns:1fr;gap:12px;width:100%;max-width:100%}
+  #screen-difficulty .difficulty-card{display:block;min-height:188px;padding:15px 12px 34px 102px;text-align:left;background:linear-gradient(100deg,color-mix(in srgb,var(--card-color) 28%,#07101d) 0 90px,#050a14 90px 100%)}
+  #screen-difficulty .difficulty-card:before{inset:0 auto 0 90px;width:2px;height:auto}
+  #screen-difficulty .difficulty-card .difficulty-gem{top:50%;right:auto;left:10px;width:70px;height:52px;margin:0;transform:translateY(-50%)}
+  #screen-difficulty .difficulty-card .difficulty-diamonds{gap:2px}
+  #screen-difficulty .difficulty-card .difficulty-diamonds i{width:21px;height:20px;flex-basis:21px}
+  #screen-difficulty .difficulty-card .difficulty-crown svg{width:62px;height:50px}
+  #screen-difficulty .difficulty-card h2{margin:0;text-align:left;font-size:1.28rem;line-height:1.15;white-space:nowrap}
+  #screen-difficulty .difficulty-card h3{margin:3px 0 7px;text-align:left;font-size:.78rem;line-height:1.2}
+  #screen-difficulty .difficulty-card ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:0;padding:0;font-size:.68rem;line-height:1.35}
+  #screen-difficulty .difficulty-card li{min-width:0}
+  #screen-difficulty .difficulty-card li:before{margin-right:5px}
+  #screen-difficulty .difficulty-card small{right:12px;bottom:9px;left:102px;text-align:left;font-size:.64rem}
+}
+
+@media(max-width:360px){
+  #screen-difficulty .difficulty-card{padding-left:94px}
+  #screen-difficulty .difficulty-card:before{left:82px}
+  #screen-difficulty .difficulty-card .difficulty-gem{left:7px;width:68px}
+  #screen-difficulty .difficulty-card ul{font-size:.64rem;gap-column:5px}
+  #screen-difficulty .difficulty-card small{left:94px}
+}
