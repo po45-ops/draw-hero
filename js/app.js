@@ -4,7 +4,7 @@
   const DH=window.DrawHero,$=id=>document.getElementById(id),game=new DH.GameState();
   let activeScreen="splash",characterIndex=Math.max(0,DH.Characters.all.findIndex(c=>c.id===game.characterId));
   let flowActive=false,selectedWorld=1,lastResult=null,currentStage=null,toastTimer=0,tutorialStep=0;
-  const battle=new DH.BattleEngine(game,handleBattleFinish);
+  const battle=new DH.BattleEngine(game,handleBattleFinish),ar=new DH.ARController({onStatus:message=>toast(message)});
 
   const i18n={
     th:{start:"เริ่มเกม",characters:"เลือกตัวละคร",modes:"โหมดการเล่น",library:"คลังเนื้อหา",missions:"ภารกิจ",creator:"ผู้สร้างด่าน",settings:"ตั้งค่า"},
@@ -15,17 +15,18 @@
     {id:"practice",name:"Practice Mode",thai:"โหมดฝึก",icon:"✎",color:"#55c271",desc:"เลือกเนื้อหาและฝึกเขียนได้โดยไม่มี Game Over",tag:"CUSTOM TRAINING"},
     {id:"survival",name:"Survival Mode",thai:"เอาชีวิตรอด",icon:"∞",color:"#ef8d42",desc:"ศัตรูมาเป็นคลื่น ดูว่าฮีโร่จะยืนหยัดได้นานแค่ไหน",tag:"ENDLESS WAVE"},
     {id:"boss",name:"Boss Mode",thai:"ศึกบอส",icon:"♛",color:"#e74848",desc:"ตอบหลายข้อเพื่อทำลายเกราะจอมมารแห่งความรู้",tag:"12 HP BOSS"},
-    {id:"custom",name:"Custom Mode",thai:"ด่านสร้างเอง",icon:"⚒",color:"#c475ff",desc:"เล่นด่านจาก Content Pack ที่ครูสร้างหรือนำเข้า",tag:"CREATOR PACKS"}
+    {id:"custom",name:"Custom Mode",thai:"ด่านสร้างเอง",icon:"⚒",color:"#c475ff",desc:"เล่นด่านจาก Content Pack ที่ครูสร้างหรือนำเข้า",tag:"CREATOR PACKS"},
+    {id:"ar",name:"AR Camera Mode",thai:"สนามรบ AR",icon:"◎",color:"#42f5d7",desc:"ใช้กล้องมือถือเป็นสนามจริง แล้ววาดคาถาปราบศัตรูที่ปรากฏตรงหน้า",tag:"CAMERA • LIVE BATTLE"}
   ];
 
   function init(){
     renderParty();renderModes();renderCharacter();renderDifficulties();renderMap();renderContent();renderPracticeTypes();renderCustomStages();
-    bindNavigation();bindSettings();bindResults();updatePlayerUI();applySettings();DH.Audio.configure(game.save.settings);
+    bindNavigation();bindSettings();bindResults();bindDepthMotion();updatePlayerUI();applySettings();DH.Audio.configure(game.save.settings);
     setTimeout(()=>showScreen("main"),1100);
     const params=new URLSearchParams(location.search);if(params.get("preview")==="1")setTimeout(startCreatorPreview,1250);
   }
   function showScreen(name){
-    if(activeScreen==="battle"&&name!=="battle")battle.stop();
+    if(activeScreen==="battle"&&name!=="battle"){battle.stop();ar.stop();$("screen-battle").classList.remove("ar-mode");}
     document.querySelectorAll(".screen").forEach(screen=>screen.classList.toggle("active",screen.dataset.screen===name));
     activeScreen=name;window.scrollTo(0,0);
     if(name==="main")updatePlayerUI();if(name==="characters")renderCharacter();if(name==="map")renderMap();if(name==="custom")renderCustomStages();
@@ -48,16 +49,24 @@
   function renderDifficulties(){
     const grid=$("difficulty-grid");grid.innerHTML="";Object.values(DH.Levels.difficulties).forEach(d=>{const button=document.createElement("button");button.className="select-card difficulty-card";button.style.setProperty("--card-color",d.color);button.innerHTML=`<span class="difficulty-gem">${d.icon}</span><h2>${d.label}</h2><h3>${d.thai}</h3><ul><li>เวลา ${d.timeLimit} วินาที</li><li>ความเร็วศัตรู ${d.speed}x</li><li>เกณฑ์ตรวจ ${d.threshold}%</li><li>ศัตรูพร้อมกัน ${d.simultaneous}</li></ul><small>เลือกความยาก</small>`;button.addEventListener("click",()=>selectDifficulty(d.id));grid.appendChild(button);});
   }
-  function selectDifficulty(id){game.setDifficulty(id);DH.Audio.play("click");if(game.mode==="story")showScreen("map");else if(game.mode==="practice")showScreen("practice");else if(game.mode==="custom")showScreen("custom");else if(game.mode==="boss")startBattle(DH.Levels.get("world6_boss"));else startSurvival();}
+  function selectDifficulty(id){game.setDifficulty(id);DH.Audio.play("click");if(game.mode==="story")showScreen("map");else if(game.mode==="practice")showScreen("practice");else if(game.mode==="custom")showScreen("custom");else if(game.mode==="boss")startBattle(DH.Levels.get("world6_boss"));else if(game.mode==="ar")startARBattle();else startSurvival();}
   function renderMap(){
     const map=$("world-map");map.innerHTML="";DH.Levels.worlds.forEach(world=>{const unlocked=world.id<=Math.max(1,game.save.worldProgress||1);const node=document.createElement("article");node.className=`world-node${selectedWorld===world.id?" active":""}${unlocked?"":" locked"}`;node.style.setProperty("--world-color",world.color);const stars=DH.Levels.forWorld(world.id).reduce((sum,stage)=>sum+(game.save.stageStars[stage.id]||0),0);node.innerHTML=`<button aria-label="${world.name}" ${unlocked?"":"disabled"}>${unlocked?world.icon:"⌧"}</button><h3>World ${world.id} — ${world.name}</h3><small>★ ${stars} / ${DH.Levels.forWorld(world.id).length*3}</small>`;if(unlocked)node.querySelector("button").addEventListener("click",()=>{selectedWorld=world.id;renderMap();});map.appendChild(node);});
     $("map-star-total").textContent=game.totalStars();renderStages();
   }
   function renderStages(){const list=$("stage-list");list.innerHTML="";DH.Levels.forWorld(selectedWorld).forEach(stage=>{const stars=game.save.stageStars[stage.id]||0;const button=document.createElement("button");button.className="stage-card";button.innerHTML=`<small>STAGE ${stage.world}-${stage.level}</small><h3>${stage.name}</h3><p>${stage.description}</p><span class="stage-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>`;button.addEventListener("click",()=>startBattle(stage));list.appendChild(button);});}
-  function startBattle(stage){if(!stage)return;currentStage=stage;showScreen("battle");battle.start(stage);if(!game.save.tutorialSeen)showTutorial();}
+  function startBattle(stage){
+    if(!stage)return;currentStage=stage;const isAR=game.mode==="ar";$("screen-battle").classList.toggle("ar-mode",isAR);showScreen("battle");
+    if(isAR)ar.start();else ar.stop();
+    battle.start(stage);if(!game.save.tutorialSeen)showTutorial();
+  }
   function startSurvival(){
     const pool=[...DH.Content.sample("shape",4),...DH.Content.sample("number",5),...DH.Content.sample("english_letter",6),...DH.Content.sample("thai_letter",6)];
     startBattle({id:"survival_session",name:"บททดสอบไร้จุดจบ",world:0,contentType:"mixed",questions:pool,enemyTypes:["goblin","skeleton","orc","shadow","ghost"],timeLimit:DH.Levels.difficulties[game.difficulty].timeLimit,enemySpeed:1.1,rewardXP:100,rewardCoins:40});
+  }
+  function startARBattle(){
+    const pool=[...DH.Content.sample("shape",4),...DH.Content.sample("number",3),...DH.Content.sample("thai_letter",3),...DH.Content.sample("english_letter",3)];
+    startBattle({id:"ar_field_session",name:"สนามเวทโลกจริง",world:0,contentType:"mixed",questions:pool,enemyTypes:["goblin","skeleton","orc","ghost"],timeLimit:DH.Levels.difficulties[game.difficulty].timeLimit,enemySpeed:.82,recognitionThreshold:DH.Levels.difficulties[game.difficulty].threshold,rewardXP:140,rewardCoins:60});
   }
   function renderPracticeTypes(){const select=$("practice-type");[{v:"thai_letter",t:"พยัญชนะไทย"},{v:"thai_word",t:"คำภาษาไทย"},{v:"english_letter",t:"English A–Z"},{v:"english_word",t:"English Words"},{v:"number",t:"ตัวเลข 0–9"},{v:"shape",t:"รูปทรง"},{v:"line",t:"เส้นพื้นฐาน"},{v:"mixed",t:"ผสม"}].forEach(item=>{const option=document.createElement("option");option.value=item.v;option.textContent=item.t;select.appendChild(option);});}
   function startPractice(event){
@@ -102,6 +111,11 @@
   }
   function bindSettings(){document.querySelectorAll("#settings-form input,#settings-form select").forEach(input=>input.addEventListener("input",saveSettings));$("reset-progress").addEventListener("click",()=>{if(confirm("คุณต้องการลบข้อมูลความก้าวหน้าทั้งหมดหรือไม่? การกระทำนี้ย้อนกลับไม่ได้")){game.save=DH.Storage.reset();game.characterId=game.save.selectedCharacter;characterIndex=0;applySettings();loadSettingsForm();updatePlayerUI();renderMap();toast("ลบข้อมูลความก้าวหน้าแล้ว");}});}
   function bindResults(){$("replay-button").addEventListener("click",()=>startBattle(currentStage));$("retry-button").addEventListener("click",()=>startBattle(currentStage));$("next-stage-button").addEventListener("click",nextStage);$("result-map-button").addEventListener("click",()=>showScreen(game.mode==="story"?"map":"main"));$("gameover-home-button").addEventListener("click",()=>showScreen("main"));}
+  function bindDepthMotion(){
+    const screen=$("screen-main");if(!screen)return;
+    screen.addEventListener("pointermove",event=>{if(game.save.settings.reducedMotion)return;const box=screen.getBoundingClientRect();const x=(event.clientX-box.left)/box.width-.5,y=(event.clientY-box.top)/box.height-.5;screen.style.setProperty("--depth-near-x",`${(x*7).toFixed(2)}px`);screen.style.setProperty("--depth-near-y",`${(y*4).toFixed(2)}px`);screen.style.setProperty("--depth-far-x",`${(x*-3).toFixed(2)}px`);screen.style.setProperty("--depth-far-y",`${(y*-2).toFixed(2)}px`);});
+    screen.addEventListener("pointerleave",()=>{["--depth-near-x","--depth-near-y","--depth-far-x","--depth-far-y"].forEach(name=>screen.style.setProperty(name,"0px"));});
+  }
 
   window.DrawHeroApp={showScreen,startBattle,game,battle,toast};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();

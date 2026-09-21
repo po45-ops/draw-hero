@@ -7,8 +7,11 @@
   <meta name="description" content="DRAW HERO เกมฝึกวาดและเขียนเพื่อพิชิตเหล่าปีศาจแห่งความรู้">
   <title>DRAW HERO — วาด • คิด • พิชิตปีศาจ</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='14' width='64' height='64' fill='%23071426'/%3E%3Cpath d='M32 7l6 17 18 7-18 7-6 19-6-19-18-7 18-7z' fill='%2337b9ff' stroke='%23d5a942' stroke-width='3'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="./css/reference-theme.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&amp;family=Kanit:wght@300;400;500;600;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css?v=1.1.0">
+  <link rel="stylesheet" href="./css/reference-theme.css?v=1.1.0">
 </head>
 <body>
   <noscript><div class="fatal-message">เกมนี้ต้องเปิดใช้งาน JavaScript ในเบราว์เซอร์</div></noscript>
@@ -62,7 +65,7 @@
           <div class="dock-stars"><span>★</span><b id="total-stars">2</b></div>
         </aside>
       </div>
-      <footer class="main-footer">รองรับ Mouse • Touch • Stylus <span>เวอร์ชัน 1.0</span></footer>
+      <footer class="main-footer">รองรับ Mouse • Touch • Stylus • AR Camera <span>เวอร์ชัน 1.1</span></footer>
     </section>
 
     <section id="screen-modes" class="screen sub-screen" data-screen="modes">
@@ -151,6 +154,10 @@
       </header>
 
       <div id="battlefield" class="battlefield">
+        <video id="ar-camera" class="ar-camera" autoplay muted playsinline aria-label="ภาพจากกล้องสำหรับโหมด AR"></video>
+        <div class="ar-depth-grid" aria-hidden="true"></div>
+        <div class="ar-status" id="ar-status" aria-live="polite"><i></i><span>กำลังเตรียมกล้อง AR</span></div>
+        <button id="ar-camera-switch" class="ar-camera-switch" type="button" aria-label="สลับกล้องหน้าและกล้องหลัง">↻ <span>สลับกล้อง</span></button>
         <div class="battle-moon" aria-hidden="true"></div>
         <div id="player-unit" class="player-unit"></div>
         <div id="enemy-layer" class="enemy-layer"></div>
@@ -217,7 +224,8 @@
   <script src="./js/recognizer.js"></script>
   <script src="./js/drawing.js"></script>
   <script src="./js/game.js"></script>
+  <script src="./js/ar.js?v=1.1.0"></script>
   <script src="./js/battle.js"></script>
-  <script src="./js/app.js"></script>
+  <script src="./js/app.js?v=1.1.0"></script>
 </body>
 </html>

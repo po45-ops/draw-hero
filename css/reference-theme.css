@@ -4,7 +4,8 @@
   --gold:#f4bd42;--gold-light:#fff0a8;--magic:#178cff;--magic-bright:#56d5ff;
   --frame-shadow:inset 0 0 0 1px #07101d,inset 0 0 0 3px #273a55,0 10px 25px #0009;
 }
-body{background:#020712;font-family:Tahoma,"Noto Sans Thai",Arial,sans-serif}
+body{background:#020712;font-family:"Kanit","Noto Sans Thai",system-ui,-apple-system,sans-serif;font-weight:400;letter-spacing:.01em}
+button,input,select,textarea{font-family:inherit}.game-logo,.creator-brand{font-family:"Cinzel","Noto Sans Thai",Georgia,serif}.screen-header h1,.select-card h2,.character-info h2,.result-card h1{font-weight:700;letter-spacing:.015em}
 .screen:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(#02071222,#02071288)}
 .glass-panel,.stone-panel{background:linear-gradient(145deg,#101d34f2,#050b16f7);border:1px solid #536984;box-shadow:var(--frame-shadow)}
 
@@ -64,3 +65,50 @@ body{background:#020712;font-family:Tahoma,"Noto Sans Thai",Arial,sans-serif}
 .topbar{position:relative}.hero-sprite{background-position:var(--hero-pos,0%) center}.enemy-art{background-position:var(--enemy-pos,0%) center}.screen-header>div:nth-child(2){flex:0 0 auto!important}.screen-header h1{white-space:nowrap}
 @media(max-width:760px){.screen-header>div:nth-child(2){position:absolute;left:106px;right:28px;text-align:center}.screen-header h1{font-size:1.08rem!important;white-space:nowrap}.screen-header:after{position:absolute;right:8px}}
 .ability small{display:block;margin-top:3px;font-size:.7rem;line-height:1.25}.character-showcase .hero-leen .hero-sprite,.player-unit .hero-leen .hero-sprite{clip-path:inset(0 0 0 10%)}
+
+/* Dimensional polish and contemporary typography */
+.mode-grid{grid-template-columns:repeat(3,minmax(220px,1fr));max-width:1150px}
+.game-logo{font-family:"Cinzel","Noto Sans Thai",Georgia,serif;font-weight:900;letter-spacing:-.065em;transform:perspective(700px) rotateX(4deg);text-shadow:0 1px 0 #fff2a5,0 3px 0 #bd7624,0 6px 0 #69330d,0 11px 18px #000d}
+.creator-brand{font-family:"Cinzel","Noto Sans Thai",Georgia,serif}
+.topbar,.main-menu,.quick-dock{transform:translate3d(var(--depth-far-x,0px),var(--depth-far-y,0px),0);transition:transform .25s ease-out}
+.hero-stage{transform:translate3d(var(--depth-near-x,0px),var(--depth-near-y,0px),0);transition:transform .22s ease-out;perspective:1100px}
+.hero-party{transform-style:preserve-3d;filter:drop-shadow(0 28px 22px #0009)}
+.hero-party .hero-card-figure:nth-child(1) .hero-sprite{transform:translateZ(-35px) rotateY(4deg)}
+.hero-party .hero-card-figure:nth-child(2) .hero-sprite{transform:translateZ(34px)}
+.hero-party .hero-card-figure:nth-child(3) .hero-sprite{transform:translateZ(12px)}
+.hero-party .hero-card-figure:nth-child(4) .hero-sprite{transform:translateZ(-28px) rotateY(-4deg)}
+.hero-party:after{content:"";position:absolute;left:17%;right:17%;bottom:5%;height:11%;border-radius:50%;background:radial-gradient(ellipse,#41bfff72 0,#244f9c45 35%,transparent 70%);transform:rotateX(67deg);filter:blur(2px);box-shadow:0 0 35px #1c8eff66;z-index:0}
+.menu-button,.quick-dock button,.quick-dock a,.select-card,.stage-card,.fantasy-button{box-shadow:inset 0 1px 0 #ffffff1f,inset 0 -5px 10px #0005,0 8px 18px #0008}
+.menu-button:active,.fantasy-button:active,.select-card:active{transform:translateY(2px);box-shadow:inset 0 3px 9px #0008,0 2px 5px #0008}
+.select-card{border-radius:8px;transform-style:preserve-3d}.select-card .card-icon{filter:drop-shadow(0 7px 4px #0008);transform:translateX(-50%) translateZ(24px)}
+.select-card h2{font-size:1.25rem;font-weight:700}.select-card p{font-size:.9rem}.menu-button{font-weight:500}.menu-button.primary{font-weight:700}
+.glass-panel,.stone-panel,.character-showcase,.canvas-wrap{backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15)}
+.splash-screen .game-logo{font-size:clamp(2.25rem,12vw,4.5rem);max-width:94vw;text-align:center}.splash-screen>p{max-width:88vw;text-align:center;line-height:1.5}
+
+/* Camera-backed AR battle mode */
+.ar-camera,.ar-depth-grid,.ar-status,.ar-camera-switch{display:none}
+.ar-mode .battlefield{isolation:isolate;background:radial-gradient(circle at 50% 58%,#173b4666,#02070fe8 75%)}
+.ar-mode .ar-camera{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:saturate(1.08) contrast(1.06) brightness(.76)}
+.ar-mode .ar-camera.mirror{transform:scaleX(-1)}
+.ar-mode .ar-depth-grid{display:block;position:absolute;inset:45% -12% -45%;z-index:1;pointer-events:none;background-image:linear-gradient(#41f5d733 1px,transparent 1px),linear-gradient(90deg,#41f5d733 1px,transparent 1px);background-size:42px 34px;transform:perspective(310px) rotateX(64deg);transform-origin:center top;mask-image:linear-gradient(#000,transparent 78%);-webkit-mask-image:linear-gradient(#000,transparent 78%)}
+.ar-mode .battlefield:before{z-index:1;height:100%;background:linear-gradient(180deg,#02101b4d 0,transparent 35%,#02060bb8 100%),radial-gradient(circle at 52% 65%,transparent 0 18%,#42f5d716 19%,transparent 38%)}
+.ar-mode .battlefield:after{z-index:1;bottom:10%;height:2px;background:linear-gradient(90deg,transparent,#42f5d7,#b1fff3,#42f5d7,transparent);box-shadow:0 0 18px #42f5d7}
+.ar-mode .player-unit,.ar-mode .enemy-layer,.ar-mode .projectile-layer,.ar-mode .distance-line,.ar-mode .battle-message{z-index:3}
+.ar-mode .enemy-unit{filter:drop-shadow(0 18px 10px #000c) drop-shadow(0 0 8px #42f5d788)}
+.ar-mode .player-unit{filter:drop-shadow(0 18px 10px #000c) drop-shadow(0 0 10px #168cff99)}
+.ar-mode .ar-status{display:flex;position:absolute;z-index:7;left:14px;top:14px;align-items:center;gap:8px;padding:7px 11px;border:1px solid #42f5d782;border-radius:999px;background:#031018cf;color:#d9fff9;font-size:.75rem;letter-spacing:.08em;box-shadow:0 5px 16px #0008,0 0 12px #42f5d72e}
+.ar-status i{width:8px;height:8px;border-radius:50%;background:#ffc14d;box-shadow:0 0 10px currentColor;animation:arPulse 1s ease-in-out infinite}
+.ar-status[data-state="ready"] i{background:#42f5a1}.ar-status[data-state="fallback"] i{background:#ff9d55}.ar-status[data-state="fallback"]{border-color:#ff9d5582}
+.ar-mode .ar-camera-switch{display:flex;position:absolute;z-index:7;right:14px;top:14px;align-items:center;gap:7px;min-height:36px;padding:6px 12px;border:1px solid #79fff0;border-radius:999px;background:#031018d9;color:#eafffc;cursor:pointer;box-shadow:0 5px 16px #0008}.ar-camera-switch:hover{background:#0b3840}
+.ar-mode .battlefield.ar-loading .ar-camera-switch,.ar-mode .battlefield.ar-fallback .ar-camera-switch{opacity:.65}
+.ar-mode .target-bubble{box-shadow:0 9px 22px #000c,0 0 15px #42f5d75c}
+.ar-mode .drawing-deck{background:linear-gradient(180deg,#03131af8,#02080efc);border-top-color:#42f5d766}
+@keyframes arPulse{50%{opacity:.35;transform:scale(.72)}}
+
+@media(max-width:760px){
+  .mode-grid{grid-template-columns:1fr 1fr}
+  .ar-mode .ar-status{top:9px;left:9px;font-size:.66rem}.ar-mode .ar-camera-switch{top:9px;right:9px;padding:5px 9px}.ar-camera-switch span{display:none}
+  .hero-party .hero-card-figure:nth-child(n) .hero-sprite{transform:none}
+  .main-screen .main-layout{width:100%;max-width:100vw;overflow:hidden}.hero-stage{width:100%;max-width:100%;overflow:hidden}.main-menu{width:100%;max-width:100%;min-width:0}.main-screen .game-logo{font-size:clamp(2.05rem,10.5vw,3.1rem);letter-spacing:-.075em;transform:none}.hero-party{width:94%;transform:scale(.86);transform-origin:center bottom}
+}
+@media(max-width:430px){.mode-grid{grid-template-columns:1fr}.main-screen .game-logo{font-size:2.05rem}.hero-party{transform:scale(.8)}}
