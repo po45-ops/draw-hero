@@ -159,3 +159,14 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
 .topbar .profile-chip b{overflow:hidden;max-width:132px;font-size:.84rem;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
 .topbar .profile-chip small{font-size:.68rem;line-height:1;color:#8fa8c0}
 @media(max-width:760px){.topbar .profile-chip{width:auto;min-width:0;height:48px;padding:3px 8px}.topbar .profile-chip .avatar-mini{flex-basis:36px;width:36px;height:36px}.topbar .profile-chip b{max-width:92px;font-size:.78rem}}
+
+/* Main hero composition: comfortable spacing and complete character art */
+.main-screen .hero-stage{padding-top:16px}
+.main-screen .hero-party{margin-top:5px}
+.main-screen .hero-party .hero-sprite{background-size:400% 400%;background-position:0% 0%;filter:drop-shadow(0 14px 8px #000c)}
+.main-screen .hero-party .hero-es .hero-sprite{background-image:url("../assets/characters/3d/es-sheet.png")}
+.main-screen .hero-party .hero-kai .hero-sprite{background-image:url("../assets/characters/3d/kai-sheet.png")}
+.main-screen .hero-party .hero-leen .hero-sprite{background-image:url("../assets/characters/3d/leen-sheet.png")}
+.main-screen .hero-party .hero-mimi .hero-sprite{background-image:url("../assets/characters/3d/mimi-sheet.png")}
+.main-screen .start-callout{position:relative;z-index:8;margin-top:7px}
+@media(max-width:760px){.main-screen .hero-stage{padding-top:12px}.main-screen .hero-party{margin-top:4px}.main-screen .start-callout{margin-top:3px}}
