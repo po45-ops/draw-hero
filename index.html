@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#071426">
+  <link rel="preload" as="image" href="./assets/backgrounds/moonlit-castle.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="./assets/characters/front/leen.png" fetchpriority="high">
   <meta name="description" content="DRAW HERO เกมฝึกวาดและเขียนเพื่อพิชิตเหล่าปีศาจแห่งความรู้">
   <title>DRAW HERO — วาด • คิด • พิชิตปีศาจ</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='14' width='64' height='64' fill='%23071426'/%3E%3Cpath d='M32 7l6 17 18 7-18 7-6 19-6-19-18-7 18-7z' fill='%2337b9ff' stroke='%23d5a942' stroke-width='3'/%3E%3C/svg%3E">
@@ -11,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&amp;family=Kanit:wght@300;400;500;600;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css?v=1.2.0">
-  <link rel="stylesheet" href="./css/reference-theme.css?v=1.2.5">
+  <link rel="stylesheet" href="./css/reference-theme.css?v=1.3.0">
 </head>
 <body>
   <noscript><div class="fatal-message">เกมนี้ต้องเปิดใช้งาน JavaScript ในเบราว์เซอร์</div></noscript>
@@ -53,7 +55,12 @@
         <main class="hero-stage" aria-labelledby="main-title">
           <div class="game-logo" id="main-title"><span class="logo-draw">DRAW</span><span class="logo-hero">HERO</span></div>
           <p class="tagline">วาด • คิด • พิชิตปีศาจ</p>
-          <div id="hero-party" class="hero-party" aria-label="กลุ่มตัวละคร"></div>
+          <div id="hero-party" class="hero-party" aria-label="กลุ่มตัวละคร">
+            <div class="hero-card-figure hero-es" style="--hero:#37b9ff"><img class="hero-sprite hero-front-sprite" src="./assets/characters/front/es.png" width="256" height="246" decoding="async" alt="Es นักเวทแห่งแสง"><b class="hero-nameplate">Es</b></div>
+            <div class="hero-card-figure hero-kai" style="--hero:#ef5555"><img class="hero-sprite hero-front-sprite" src="./assets/characters/front/kai.png" width="256" height="266" decoding="async" alt="Kai นักดาบผู้กล้า"><b class="hero-nameplate">Kai</b></div>
+            <div class="hero-card-figure hero-leen" style="--hero:#55c271"><img class="hero-sprite hero-front-sprite" src="./assets/characters/front/leen.png" width="256" height="266" decoding="sync" fetchpriority="high" alt="Leen นักธนูแห่งธรรมชาติ"><b class="hero-nameplate">Leen</b></div>
+            <div class="hero-card-figure hero-mimi" style="--hero:#f275bb"><img class="hero-sprite hero-front-sprite" src="./assets/characters/front/mimi.png" width="256" height="266" decoding="async" alt="Mimi นักเวทแห่งความรู้"><b class="hero-nameplate">Mimi</b></div>
+          </div>
           <div class="start-callout"><span>วาดให้ถูก</span><i>•</i><span>คิดให้ไว</span><i>•</i><span>พิชิตทุกความรู้</span></div>
         </main>
 
@@ -173,6 +180,7 @@
           <div id="character-slots" class="character-slots"></div>
           <p id="target-hint">วาดตามสัญลักษณ์</p>
           <div class="accuracy-meter"><span>พลังตรวจจับ</span><div class="meter"><i id="accuracy-fill"></i></div><b id="accuracy-value">—</b></div>
+          <div id="recognition-feedback" class="recognition-feedback" aria-live="polite">วาดตามแบบ แล้วกดร่ายเวท</div>
           <div id="debug-panel" class="debug-panel" hidden></div>
         </aside>
 
@@ -202,7 +210,7 @@
     </div>
 
     <section id="screen-result" class="screen result-screen" data-screen="result">
-      <div class="result-card stone-panel"><small>STAGE COMPLETE</small><h1>VICTORY</h1><div id="result-stars" class="result-stars">★★★</div><h2 id="result-stage-name">เส้นแห่งเวทมนตร์</h2><div class="result-grid"><div><small>SCORE</small><b id="result-score">0</b></div><div><small>ACCURACY</small><b id="result-accuracy">0%</b></div><div><small>CORRECT</small><b id="result-correct">0</b></div><div><small>WRONG</small><b id="result-wrong">0</b></div><div><small>BEST COMBO</small><b id="result-combo">x0</b></div><div><small>TIME</small><b id="result-time">0:00</b></div></div><div class="rewards"><span>✦ <b id="result-xp">+0 XP</b></span><span>● <b id="result-coins">+0</b></span></div><div class="result-actions"><button id="replay-button" class="fantasy-button">เล่นอีกครั้ง</button><button id="next-stage-button" class="fantasy-button primary">ด่านถัดไป</button><button id="result-map-button" class="fantasy-button">กลับแผนที่</button></div></div>
+      <div class="result-card stone-panel"><small>STAGE COMPLETE</small><h1>VICTORY</h1><div id="result-stars" class="result-stars">★★★</div><h2 id="result-stage-name">เส้นแห่งเวทมนตร์</h2><div class="result-grid"><div><small>SCORE</small><b id="result-score">0</b></div><div><small>ACCURACY</small><b id="result-accuracy">0%</b></div><div><small>CORRECT</small><b id="result-correct">0</b></div><div><small>WRONG</small><b id="result-wrong">0</b></div><div><small>BEST COMBO</small><b id="result-combo">x0</b></div><div><small>TIME</small><b id="result-time">0:00</b></div></div><div class="rewards"><span>✦ <b id="result-xp">+0 XP</b></span><span>● <b id="result-coins">+0</b></span><span>◆ <b id="result-mastery">ความชำนาญฮีโร่ Lv.1</b></span></div><div class="result-actions"><button id="replay-button" class="fantasy-button">เล่นอีกครั้ง</button><button id="next-stage-button" class="fantasy-button primary">ด่านถัดไป</button><button id="result-map-button" class="fantasy-button">กลับแผนที่</button></div></div>
     </section>
 
     <section id="screen-gameover" class="screen result-screen gameover-screen" data-screen="gameover">
@@ -214,18 +222,18 @@
     </div>
   </div>
 
-  <script src="./js/storage.js"></script>
-  <script src="./js/characters.js?v=1.2.0"></script>
+  <script src="./js/storage.js?v=1.3.0"></script>
+  <script src="./js/characters.js?v=1.3.0"></script>
   <script src="./js/skills.js"></script>
-  <script src="./js/enemies.js?v=1.2.0"></script>
+  <script src="./js/enemies.js?v=1.3.0"></script>
   <script src="./js/content.js"></script>
   <script src="./js/levels.js"></script>
   <script src="./js/audio.js"></script>
   <script src="./js/recognizer.js"></script>
   <script src="./js/drawing.js"></script>
-  <script src="./js/game.js"></script>
+  <script src="./js/game.js?v=1.3.0"></script>
   <script src="./js/ar.js?v=1.1.0"></script>
-  <script src="./js/battle.js?v=1.2.0"></script>
-  <script src="./js/app.js?v=1.2.2"></script>
+  <script src="./js/battle.js?v=1.3.0"></script>
+  <script src="./js/app.js?v=1.3.1"></script>
 </body>
 </html>

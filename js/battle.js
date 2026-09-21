@@ -6,7 +6,7 @@
       this.game=game;this.onFinish=onFinish;this.running=false;this.paused=false;this.raf=0;this.lastTime=0;this.heroActionTimer=0;this.pendingTimers=new Set();
       this.board=null;this.stage=null;this.enemies=[];this.questions=[];this.questionCursor=0;this.slotIndex=0;
       this.hp=3;this.score=0;this.combo=0;this.bestCombo=0;this.correct=0;this.wrong=0;this.accuracyTotal=0;this.skillGauge=0;
-      this.timeLeft=0;this.questionTime=0;this.startTime=0;this.slowUntil=0;this.freezeUntil=0;this.hintUsed=false;this.completedQuestions=0;
+      this.timeLeft=0;this.questionTime=0;this.startTime=0;this.slowUntil=0;this.freezeUntil=0;this.impactUntil=0;this.hintUsed=false;this.completedQuestions=0;this.mastery={level:1,xp:0};
       this.boundLoop=this.loop.bind(this);this.bindControls();
     }
     bindControls(){
@@ -37,9 +37,9 @@
       this.stop();this.stage=this.prepareStage(stage);this.game.currentStage=stage;
       this.questions=(stage.questions||[]).map(window.DrawHero.Content.resolve).filter(Boolean);
       if(!this.questions.length)this.questions=[window.DrawHero.Content.byType("shape")[0]];
-      this.questionCursor=0;this.slotIndex=0;this.enemies=[];this.hp=window.DrawHero.Characters.get(this.game.characterId).hp||3;
+      this.questionCursor=0;this.slotIndex=0;this.enemies=[];this.mastery=this.game.characterMastery(this.game.characterId);this.hp=(window.DrawHero.Characters.get(this.game.characterId).hp||3)+(this.mastery.level>=3?1:0);
       this.score=0;this.combo=0;this.bestCombo=0;this.correct=0;this.wrong=0;this.accuracyTotal=0;this.skillGauge=0;this.completedQuestions=0;
-      this.startTime=performance.now();this.slowUntil=0;this.freezeUntil=0;this.hintUsed=false;
+      this.startTime=performance.now();this.slowUntil=0;this.freezeUntil=0;this.impactUntil=0;this.hintUsed=false;
       this.renderPlayer();this.updateHud();this.initBoard();this.spawnEnemies();this.setQuestion();
       this.running=true;this.paused=false;this.lastTime=performance.now();this.raf=requestAnimationFrame(this.boundLoop);
       window.DrawHero.Audio.play("click");
@@ -70,9 +70,9 @@
       const data=window.DrawHero.Enemies.get(type);if(this.stage.boss){data.hp=Math.max(data.hp,this.questions.length);data.boss=true;}
       const element=document.createElement("div");element.className=`enemy-unit${data.boss?" boss":""}`;element.style.setProperty("--enemy",data.color);
       const question=this.questions[(this.questionCursor+index)%this.questions.length];
-      element.innerHTML=`<div class="target-bubble">${this.escape(question.display)}</div><div class="model-sprite enemy-3d-sprite pose-run" style="--model-sheet:url('../${data.sprite3d}')" role="img" aria-label="${data.name}"></div><div class="enemy-hp"><i></i></div>`;
+      element.innerHTML=`<div class="enemy-trait" title="${this.escape(data.trait.label)}"><i>${data.trait.icon}</i><span>${this.escape(data.trait.label)}</span></div><div class="target-bubble">${this.escape(question.display)}</div><div class="model-sprite enemy-3d-sprite pose-run" style="--model-sheet:url('../${data.sprite3d}')" role="img" aria-label="${data.name}"></div><div class="enemy-hp"><i></i></div>`;
       $("enemy-layer").appendChild(element);
-      const enemy={data,element,hp:data.hp,maxHp:data.hp,distance:100+index*13,question};this.enemies.push(enemy);this.positionEnemy(enemy);
+      const enemy={data,element,hp:data.hp,maxHp:data.hp,shield:Number(data.shield)||0,distance:100+index*13,question};if(enemy.shield)element.classList.add("has-shield");this.enemies.push(enemy);this.positionEnemy(enemy);
     }
     escape(value){const node=document.createElement("span");node.textContent=String(value);return node.innerHTML;}
     activeEnemy(){return this.enemies[0]||null;}
@@ -106,25 +106,36 @@
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
       $("accuracy-fill").style.width=`${result.score}%`;$("accuracy-value").textContent=`${result.score}%`;
+      this.showRecognitionFeedback(result.score,threshold);
       if(window.DRAW_HERO_DEBUG){$("debug-panel").hidden=false;$("debug-panel").textContent=`score ${result.score} / ${threshold} • ${question.id} • ${JSON.stringify(result.details)}`;}
       if(result.score>=threshold)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
     }
     correctAnswer(accuracy){
       this.correct+=1;this.combo+=1;this.bestCombo=Math.max(this.bestCombo,this.combo);this.accuracyTotal+=accuracy;
-      this.skillGauge=Math.min(100,this.skillGauge+22);this.board.clear();
+      this.skillGauge=Math.min(100,this.skillGauge+(this.mastery.level>=2?26:22));this.board.clear();
       const chars=this.splitAnswer(this.currentQuestion().answer);
       if(this.slotIndex<chars.length-1){this.slotIndex+=1;this.timeLeft=Math.max(3,this.timeLeft);this.renderSlots();this.applyGuide();this.message(accuracy>82?"PERFECT!":"GOOD!");window.DrawHero.Audio.play("success");this.updateHud();return;}
       this.completedQuestions+=1;
+      this.game.recordAttempt(this.currentQuestion().type,true,accuracy);
       const diff=window.DrawHero.Levels.difficulties[this.game.difficulty];const fast=this.questionTime?this.timeLeft/this.questionTime:1;
       const comboBonus=1+Math.min(this.combo,10)*.1;const gained=Math.round((this.currentQuestion().reward||100)*(diff.scoreMultiplier||1)*comboBonus+fast*50+accuracy*.5);
-      this.score+=gained;this.attackEnemy(1,gained);this.message(this.combo>=5?`COMBO x${this.combo}!`:(accuracy>82?"PERFECT!":"GOOD!"));
-      window.DrawHero.Audio.play("spell");this.advanceAfterHit();
+      const critical=this.combo>0&&this.combo%5===0;this.score+=gained;this.attackEnemy(critical?2:1,gained,true,critical);this.message(critical?`CRITICAL COMBO x${this.combo}!`:(accuracy>82?"PERFECT!":"GOOD!"));
+      window.DrawHero.Audio.play(critical?"critical":"spell");this.advanceAfterHit();
     }
-    wrongAnswer(score){this.wrong+=1;this.combo=0;this.message(score>0?`ลองอีกครั้ง! ${score}%`:"ยังไม่มีเส้นเวท");window.DrawHero.Audio.play("wrong");this.updateHud();}
-    attackEnemy(damage,score,animate=true){
-      const enemy=this.activeEnemy();if(!enemy)return;if(animate)this.playHeroAction("attack",720);enemy.hp=Math.max(0,enemy.hp-damage);enemy.element.querySelector(".enemy-hp i").style.width=`${enemy.hp/enemy.maxHp*100}%`;enemy.element.classList.remove("hit");void enemy.element.offsetWidth;enemy.element.classList.add("hit");
+    showRecognitionFeedback(score,threshold){
+      const node=$("recognition-feedback");if(!node)return;let state="retry",text="ปรับรูปทรงแล้วลองอีกครั้ง";
+      if(score>=threshold){state="success";text=score>=85?"เส้นสวยและแม่นยำมาก":"ผ่านแล้ว — รูปทรงถูกต้อง";}
+      else if(score>=Math.max(20,threshold-15)){state="close";text=`ใกล้แล้ว อีก ${Math.max(1,threshold-score)}% • ลากเส้นให้ใกล้แบบมากขึ้น`;}
+      node.className=`recognition-feedback ${state}`;node.textContent=text;
+    }
+    wrongAnswer(score){this.wrong+=1;this.combo=0;this.game.recordAttempt(this.currentQuestion().type,false,score);this.message(score>0?`ใกล้แล้ว! ${score}%`:"ยังไม่มีเส้นเวท");if(this.game.save.settings.showGuide!==false)this.board.setGuide(this.currentCharacter(),"dotted");window.DrawHero.Audio.play("wrong");this.updateHud();}
+    attackEnemy(damage,score,animate=true,critical=false){
+      const enemy=this.activeEnemy();if(!enemy)return;if(animate)this.playHeroAction(critical?"skill":"attack",critical?900:720);this.impactUntil=performance.now()+(critical?150:75);
+      if(enemy.shield>0){enemy.shield-=1;enemy.element.classList.remove("has-shield");enemy.element.classList.add("shield-break");this.message("เกราะแตก!");window.DrawHero.Audio.play("shield");damage=0;}
+      enemy.hp=Math.max(0,enemy.hp-damage);enemy.element.querySelector(".enemy-hp i").style.width=`${enemy.hp/enemy.maxHp*100}%`;enemy.element.classList.remove("hit","critical-hit");void enemy.element.offsetWidth;enemy.element.classList.add(critical?"critical-hit":"hit");
       const projectile=document.createElement("i");projectile.className="projectile";projectile.style.setProperty("--target-x",`${Math.max(20,enemy.distance)}%`);$("projectile-layer").appendChild(projectile);setTimeout(()=>projectile.remove(),650);
-      const floating=document.createElement("b");floating.className="floating-damage";floating.textContent=`-${damage}  +${score}`;floating.style.left=`${enemy.distance}%`;floating.style.bottom="48%";$("projectile-layer").appendChild(floating);setTimeout(()=>floating.remove(),900);
+      const floating=document.createElement("b");floating.className=`floating-damage${critical?" critical":""}`;floating.textContent=damage?`${critical?"CRITICAL ":""}-${damage}  +${score}`:`SHIELD BREAK  +${score}`;floating.style.left=`${enemy.distance}%`;floating.style.bottom="48%";$("projectile-layer").appendChild(floating);setTimeout(()=>floating.remove(),900);
+      const field=$("battlefield");field.classList.remove("impact-shake");void field.offsetWidth;field.classList.add("impact-shake");
       if(enemy.hp<=0){enemy.element.classList.add("defeated");setTimeout(()=>{enemy.element.remove();},650);this.enemies.shift();}
     }
     advanceAfterHit(){
@@ -161,7 +172,7 @@
     loop(now){
       if(!this.running)return;const delta=Math.min(.05,(now-this.lastTime)/1000||0);this.lastTime=now;
       if(!this.paused){
-        const frozen=now<this.freezeUntil;
+        const frozen=now<this.freezeUntil||now<this.impactUntil;
         const slow=now<this.slowUntil ? .45 : 1;
         if(!frozen){
           this.timeLeft=Math.max(0,this.timeLeft-delta);
@@ -172,7 +183,7 @@
       }
       this.raf=requestAnimationFrame(this.boundLoop);
     }
-    positionEnemy(enemy){enemy.element.style.left=`${Math.max(8,Math.min(96,enemy.distance))}%`;}
+    positionEnemy(enemy){enemy.element.style.left=`${Math.max(8,Math.min(96,enemy.distance))}%`;enemy.element.classList.toggle("is-warning",enemy.distance<=27&&enemy.distance>8);}
     enemyReached(enemy){
       if(enemy.attacking)return;enemy.attacking=true;const index=this.enemies.indexOf(enemy);if(index>=0)this.enemies.splice(index,1);
       const sprite=enemy.element.querySelector(".enemy-3d-sprite");if(sprite){sprite.classList.remove("pose-run");sprite.classList.add("pose-attack");}enemy.element.classList.add("enemy-strike");

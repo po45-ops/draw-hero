@@ -163,11 +163,7 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
 /* Main hero composition: comfortable spacing and complete character art */
 .main-screen .hero-stage{padding-top:16px}
 .main-screen .hero-party{margin-top:5px}
-.main-screen .hero-party .hero-sprite{background-size:400% 400%;background-position:0% 0%;filter:drop-shadow(0 14px 8px #000c)}
-.main-screen .hero-party .hero-es .hero-sprite{background-image:url("../assets/characters/3d/es-sheet.png")}
-.main-screen .hero-party .hero-kai .hero-sprite{background-image:url("../assets/characters/3d/kai-sheet.png")}
-.main-screen .hero-party .hero-leen .hero-sprite{background-image:url("../assets/characters/3d/leen-sheet.png")}
-.main-screen .hero-party .hero-mimi .hero-sprite{background-image:url("../assets/characters/3d/mimi-sheet.png")}
+.main-screen .hero-party .hero-front-sprite{width:100%;height:100%;object-fit:contain;object-position:center bottom;background:none;filter:drop-shadow(0 14px 8px #000c)}
 .main-screen .start-callout{position:relative;z-index:8;margin-top:7px}
 @media(max-width:760px){.main-screen .hero-stage{padding-top:12px}.main-screen .hero-party{margin-top:4px}.main-screen .start-callout{margin-top:3px}}
 
@@ -185,3 +181,22 @@ body.reduced-motion .model-sprite,body.reduced-motion .model-badge i,body.reduce
 .battlefield .target-bubble{top:-56px}
 .enemy-unit.boss .target-bubble{top:-60px}
 @media(max-width:760px){.battlefield .target-bubble{top:-48px}.enemy-unit.boss .target-bubble{top:-54px}}
+
+/* Gameplay polish, progression and learning feedback */
+.mastery-panel{margin:12px 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--char) 55%,#2e435e);background:linear-gradient(90deg,color-mix(in srgb,var(--char) 13%,#07101d),#050a14)}
+.mastery-panel span{display:flex;align-items:center;justify-content:space-between;gap:10px}.mastery-panel small,.mastery-panel em{color:#9eb2c6;font-size:.68rem;font-style:normal}.mastery-panel .meter{height:7px;margin:7px 0 4px;background:#020711}.mastery-panel .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--char),#fff0a4);box-shadow:0 0 9px var(--char)}
+.recognition-feedback{margin-top:9px;padding:7px 8px;border-left:3px solid #48627e;background:#06101e;color:#91a9bd;font-size:.7rem;line-height:1.3}.recognition-feedback.success{border-color:#55d98a;color:#99ffc1;background:#092419}.recognition-feedback.close{border-color:#ffc44c;color:#ffe2a0;background:#2b2109}.recognition-feedback.retry{border-color:#ff7280;color:#ffb4bd;background:#2b0d15}
+.enemy-trait{position:absolute;left:50%;top:-88px;z-index:4;display:flex;align-items:center;gap:4px;transform:translateX(-50%);padding:3px 6px;border:1px solid color-mix(in srgb,var(--enemy) 65%,#fff);background:#030914dc;color:#dcecff;font-size:.56rem;white-space:nowrap;opacity:.82}.enemy-trait i{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--enemy);color:#fff;font-style:normal;box-shadow:0 0 8px var(--enemy)}
+.enemy-unit.has-shield .enemy-3d-sprite{filter:drop-shadow(0 11px 6px #000d) drop-shadow(0 0 10px #83e7ff) saturate(1.12)}.enemy-unit.has-shield:after{content:"";position:absolute;inset:2% -6% 3%;border:2px solid #8cecff88;border-radius:48%;box-shadow:inset 0 0 14px #64dfff55,0 0 12px #4ddfff55;pointer-events:none;animation:shieldPulse 1.4s ease-in-out infinite}.enemy-unit.shield-break:after{animation:shieldBreak .42s ease forwards}
+.enemy-unit.is-warning .target-bubble{border-color:#ff6a70;box-shadow:0 0 15px #ff364f,0 8px 15px #0008;animation:warningPulse .65s ease-in-out infinite}.enemy-unit.is-warning .enemy-3d-sprite{filter:drop-shadow(0 11px 6px #000d) drop-shadow(0 0 12px #ff4a52)}
+.enemy-unit.critical-hit{animation:criticalHit .42s ease}.floating-damage.critical{font-size:2.25rem;color:#fff;background:linear-gradient(#fff,#ffd54a,#ff5f43);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px #7e1426) drop-shadow(0 0 8px #ffc13d)}.battlefield.impact-shake{animation:battlefieldShake .18s linear}
+@keyframes warningPulse{50%{transform:translateX(-50%) scale(1.07)}}@keyframes shieldPulse{50%{opacity:.45;transform:scale(1.04)}}@keyframes shieldBreak{to{opacity:0;transform:scale(1.35);filter:blur(3px)}}@keyframes criticalHit{25%{transform:translateX(-50%) translateX(13px) scale(1.08);filter:brightness(2.8)}65%{transform:translateX(-50%) translateX(-8px) scale(.94)}}@keyframes battlefieldShake{25%{transform:translateX(-3px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+.learning-recommendation{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid #d6a83f;background:linear-gradient(110deg,#2b2008e8,#0a2038);box-shadow:0 0 16px #f4bd4222}.learning-recommendation>span{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#d6a83f;color:#07101d;font-size:1.6rem;box-shadow:0 0 16px #f4bd42}.learning-recommendation small,.learning-recommendation b{display:block}.learning-recommendation small{color:#d6a83f;letter-spacing:.1em}.learning-recommendation p{margin:3px 0;color:#adc0d3}.learning-meter{height:6px;margin:7px 0;background:#020711}.learning-meter i{display:block;height:100%;background:linear-gradient(90deg,#356cff,#45e2ff,#62e193)}.attempt-count{color:#8197aa}.pack-validation{margin-top:16px;padding:12px;border-left:3px solid #ffb83f;background:#171306}.pack-validation.ready{border-color:#55d58a;background:#082318}.pack-validation b,.pack-validation small{display:block}.pack-validation small{margin-top:4px;color:#aabdd0}
+.rewards{flex-wrap:wrap}
+
+/* Touch-first layout and safe areas */
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+@media(pointer:coarse){button,.fantasy-button,.tool-button,.side-action{min-height:44px}.canvas-wrap,#drawing-canvas{touch-action:none}.battle-screen{overscroll-behavior:none}.model-controls button{min-height:38px}}
+@media(max-height:520px) and (orientation:landscape){.battle-screen.active{height:auto;min-height:100dvh;grid-template-rows:48px 205px auto;overflow:visible}.battle-hud{position:sticky;top:0;min-height:48px;padding:3px 9px}.battlefield{height:205px}.player-unit{width:90px;height:140px}.enemy-unit{width:84px;height:108px}.drawing-deck{grid-template-columns:145px minmax(300px,1fr) 130px}.canvas-wrap{min-height:235px}.target-display{font-size:2rem}.recognition-feedback{font-size:.62rem}.enemy-trait{top:-75px}}
+@media(max-width:760px){.enemy-trait{top:-73px}.target-panel .recognition-feedback{grid-column:1/-1;margin-top:5px}.learning-recommendation{align-items:flex-start}.learning-recommendation>span{flex:0 0 42px;width:42px;height:42px}.rewards{gap:10px}}
+body.reduced-motion .enemy-unit.is-warning .target-bubble,body.reduced-motion .enemy-unit.has-shield:after,body.reduced-motion .battlefield.impact-shake{animation:none!important}

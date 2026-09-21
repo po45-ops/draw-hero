@@ -35,6 +35,8 @@
         wrong:[[180,.14,"sawtooth",.07,0],[120,.18,"sawtooth",.06,.12]],
         spell:[[260,.2,"triangle",.1,0],[540,.28,"sine",.12,.08],[880,.2,"sine",.06,.2]],
         hit:[[110,.09,"square",.08,0]],
+        critical:[[165,.08,"square",.11,0],[420,.12,"sawtooth",.08,.04],[920,.2,"sine",.1,.1]],
+        shield:[[280,.07,"triangle",.1,0],[190,.16,"square",.06,.06]],
         victory:[[392,.14,"sine",.1,0],[523,.14,"sine",.1,.13],[659,.3,"sine",.12,.26]]
       };
       (patterns[name] || patterns.click).forEach(note => this.tone(...note));

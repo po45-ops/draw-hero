@@ -16,6 +16,8 @@
     totalCorrect: 0,
     bestCombo: 0,
     completedStages: 0,
+    characterMastery: {},
+    learningStats: {},
     tutorialSeen: false,
     customPacks: [],
     templates: {},
@@ -41,6 +43,8 @@
     const result = Object.assign({}, base, incoming || {});
     result.settings = Object.assign({}, base.settings, incoming && incoming.settings);
     result.stageStars = Object.assign({}, base.stageStars, incoming && incoming.stageStars);
+    result.characterMastery = Object.assign({}, base.characterMastery, incoming && incoming.characterMastery);
+    result.learningStats = Object.assign({}, base.learningStats, incoming && incoming.learningStats);
     result.customPacks = Array.isArray(result.customPacks) ? result.customPacks : [];
     result.unlockedCharacters = Array.isArray(result.unlockedCharacters) ? result.unlockedCharacters : base.unlockedCharacters.slice();
     result.templates = result.templates && typeof result.templates === "object" ? result.templates : {};
