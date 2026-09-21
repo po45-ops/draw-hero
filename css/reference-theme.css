@@ -251,3 +251,39 @@ body.reduced-motion .enemy-unit.is-warning .target-bubble,body.reduced-motion .e
   #screen-difficulty .difficulty-card ul{font-size:.64rem;gap-column:5px}
   #screen-difficulty .difficulty-card small{left:94px}
 }
+
+/* Phone home screen: one-viewport dashboard with clean rectangular controls. */
+@media(max-width:600px){
+  #screen-main{height:100dvh;min-height:100dvh;overflow:hidden}
+  #screen-main .topbar{flex:0 0 58px;height:58px;min-height:58px;gap:6px;padding:5px 8px}
+  #screen-main .profile-chip{height:46px;min-height:46px;padding:3px 7px;gap:7px;clip-path:none;border-radius:5px}
+  #screen-main .profile-chip .avatar-mini{flex-basis:34px;width:34px;height:34px}
+  #screen-main .profile-chip>span:last-child{gap:2px}
+  #screen-main .profile-chip b{max-width:88px;font-size:.76rem}
+  #screen-main .profile-chip small{display:flex;align-items:baseline;gap:3px;font-size:.67rem;line-height:1;white-space:nowrap}
+  #screen-main #player-level{display:inline!important}
+  #screen-main .currency{min-width:66px;padding:6px 8px}
+  #screen-main .icon-button{min-width:42px;width:42px;min-height:42px;height:42px}
+
+  #screen-main .main-layout{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:6px;flex:1;min-height:0;padding:0 8px 8px;overflow:hidden}
+  #screen-main .hero-stage{order:1;min-height:0;padding-top:18px;overflow:visible}
+  #screen-main .game-logo{font-size:clamp(2.08rem,9.8vw,2.5rem);line-height:.9}
+  #screen-main .tagline{margin:.4rem 0 0;font-size:clamp(.82rem,4vw,1rem);line-height:1.2;letter-spacing:.075em}
+  #screen-main .hero-party{width:100%;height:clamp(170px,31dvh,245px);margin-top:2px;transform:scale(.96);transform-origin:center bottom}
+  #screen-main .hero-card-figure{width:29%;margin-inline:-5%}
+  #screen-main .start-callout{max-width:96%;margin-top:0;padding:6px 12px;gap:7px;font-size:clamp(.68rem,3.3vw,.82rem);white-space:nowrap}
+
+  #screen-main .main-menu{order:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;width:100%;padding:0;background:none}
+  #screen-main .menu-button{width:100%;height:44px;min-height:44px;padding:5px 10px;gap:8px;clip-path:none;border:1px solid #344b69;border-radius:5px;background:linear-gradient(100deg,#0b1729f5,#07101df5);font-size:.83rem;box-shadow:inset 0 1px #ffffff12,0 3px 8px #0007}
+  #screen-main .menu-button.primary{grid-column:1/-1;height:48px;min-height:48px;border-width:2px;border-radius:5px;font-size:1rem;clip-path:none}
+  #screen-main .menu-glyph{width:24px;font-size:1rem}
+}
+
+@media(max-width:360px){
+  #screen-main .topbar{gap:4px;padding-inline:5px}
+  #screen-main .profile-chip{padding-inline:5px}
+  #screen-main .profile-chip b{max-width:76px;font-size:.71rem}
+  #screen-main .currency{min-width:58px;padding-inline:5px}
+  #screen-main .hero-stage{padding-top:14px}
+  #screen-main .menu-button{padding-inline:7px;font-size:.76rem}
+}
