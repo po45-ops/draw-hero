@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&amp;family=Kanit:wght@300;400;500;600;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css?v=1.2.0">
   <link rel="stylesheet" href="./css/reference-theme.css?v=1.3.5">
+  <link rel="stylesheet" href="./css/concept-theme.css?v=2.0.0">
 </head>
 <body>
   <noscript><div class="fatal-message">เกมนี้ต้องเปิดใช้งาน JavaScript ในเบราว์เซอร์</div></noscript>
@@ -72,7 +73,7 @@
           <div class="dock-stars"><span>★</span><b id="total-stars">2</b></div>
         </aside>
       </div>
-      <footer class="main-footer">รองรับ Mouse • Touch • Stylus • AR Camera <span>เวอร์ชัน 1.1</span></footer>
+      <footer class="main-footer">รองรับ Mouse • Touch • Stylus • AR Camera <span>เวอร์ชัน 2.0</span></footer>
     </section>
 
     <section id="screen-modes" class="screen sub-screen" data-screen="modes">
@@ -94,10 +95,12 @@
     <section id="screen-difficulty" class="screen sub-screen" data-screen="difficulty">
       <header class="screen-header"><button class="back-button" data-back="characters">‹</button><div><small>CHOOSE YOUR CHALLENGE</small><h1>เลือกระดับความยาก</h1></div></header>
       <div id="difficulty-grid" class="card-grid difficulty-grid"></div>
+      <div class="screen-actions difficulty-actions"><button id="confirm-difficulty" class="fantasy-button primary" type="button">ยืนยันความยาก</button></div>
     </section>
 
     <section id="screen-map" class="screen sub-screen map-screen" data-screen="map">
-      <header class="screen-header"><button class="back-button" data-back="difficulty">‹</button><div><small>STORY ADVENTURE</small><h1>แผนที่การผจญภัย</h1></div><div class="map-stars">★ <span id="map-star-total">0</span></div></header>
+      <header class="screen-header"><button id="map-back-button" class="back-button">‹</button><div><small id="map-eyebrow">STORY ADVENTURE</small><h1 id="map-title">แผนที่การผจญภัย</h1></div></header>
+      <div class="map-stars">★ <span id="map-star-label">ดาวสะสม</span> <strong id="map-star-total">0</strong></div>
       <div id="world-map" class="world-map" aria-label="แผนที่โลก"></div>
       <div id="stage-list" class="stage-list"></div>
     </section>
@@ -174,6 +177,9 @@
       </div>
 
       <div class="drawing-deck">
+        <nav id="battle-category-tabs" class="battle-category-tabs" aria-label="หมวดความรู้">
+          <span data-category="thai_letter">ก–ฮ</span><span data-category="english_letter">A–Z</span><span data-category="number">1–100</span><span data-category="word">คำ</span><span data-category="phrase">ประโยค</span><span data-category="math">คณิต</span>
+        </nav>
         <aside class="target-panel">
           <small>เป้าหมายเวทมนตร์</small>
           <div id="target-display" class="target-display">○</div>
@@ -206,7 +212,7 @@
     </section>
 
     <div id="pause-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
-      <div class="modal-card stone-panel"><small>BATTLE PAUSED</small><h2 id="pause-title">หยุดพักการผจญภัย</h2><button id="resume-button" class="fantasy-button primary">เล่นต่อ</button><button id="restart-button" class="fantasy-button">เริ่มด่านใหม่</button><button id="quit-battle-button" class="fantasy-button danger">กลับหน้าหลัก</button></div>
+      <div class="modal-card pause-card stone-panel"><small>GAME PAUSED</small><h2 id="pause-title">หยุดเกมชั่วคราว</h2><div class="pause-summary"><span>ด่าน <b id="pause-stage">—</b></span><span>คะแนน <b id="pause-score">0</b></span><span class="pause-hearts" id="pause-hearts">♥ ♥ ♥</span></div><button id="resume-button" class="fantasy-button primary">▶ เล่นต่อ</button><button id="restart-button" class="fantasy-button">↻ เริ่มต้นใหม่</button><button id="back-to-stages-button" class="fantasy-button">← ย้อนกลับไปเลือกด่าน</button><button id="quit-battle-button" class="fantasy-button danger">⌂ กลับหน้าแรก</button><div class="pause-audio"><span>♫ เสียงเพลง <b>ON</b></span><span>◖ เอฟเฟกต์ <b>ON</b></span></div></div>
     </div>
 
     <section id="screen-result" class="screen result-screen" data-screen="result">
@@ -226,14 +232,14 @@
   <script src="./js/characters.js?v=1.3.0"></script>
   <script src="./js/skills.js"></script>
   <script src="./js/enemies.js?v=1.3.0"></script>
-  <script src="./js/content.js"></script>
-  <script src="./js/levels.js"></script>
+  <script src="./js/content.js?v=2.0.0"></script>
+  <script src="./js/levels.js?v=2.0.0"></script>
   <script src="./js/audio.js"></script>
-  <script src="./js/recognizer.js"></script>
-  <script src="./js/drawing.js"></script>
+  <script src="./js/recognizer.js?v=2.0.0"></script>
+  <script src="./js/drawing.js?v=2.0.0"></script>
   <script src="./js/game.js?v=1.3.0"></script>
   <script src="./js/ar.js?v=1.1.0"></script>
-  <script src="./js/battle.js?v=1.3.0"></script>
-  <script src="./js/app.js?v=1.3.1"></script>
+  <script src="./js/battle.js?v=2.0.0"></script>
+  <script src="./js/app.js?v=2.0.0"></script>
 </body>
 </html>

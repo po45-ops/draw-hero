@@ -78,17 +78,20 @@
     activeEnemy(){return this.enemies[0]||null;}
     currentQuestion(){const enemy=this.activeEnemy();return enemy?enemy.question:this.questions[this.questionCursor%this.questions.length];}
     splitAnswer(answer){return Array.from(String(answer)).filter(char=>char!==" ");}
-    currentCharacter(){const chars=this.splitAnswer(this.currentQuestion().answer);return chars[Math.min(this.slotIndex,chars.length-1)]||String(this.currentQuestion().answer);}
+    answerUnits(question){return question.wholeAnswer?[String(question.answer).trim()]:this.splitAnswer(question.answer);}
+    currentCharacter(){const question=this.currentQuestion(),units=this.answerUnits(question);return units[Math.min(this.slotIndex,units.length-1)]||String(question.answer);}
+    categoryFor(question){if(question.type.startsWith("math_"))return"math";if(question.type.includes("phrase"))return"phrase";if(question.type.includes("word"))return"word";return question.type;}
     setQuestion(){
       const q=this.currentQuestion();if(!q)return;
       this.slotIndex=0;this.questionTime=Number(q.timeLimit)||this.stage.timeLimit;this.timeLeft=this.questionTime;
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
+      const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
       this.renderSlots();this.applyGuide();this.updateEnemyBubbles();this.updateHud();
     }
     renderSlots(){
-      const chars=this.splitAnswer(this.currentQuestion().answer),container=$("character-slots");container.innerHTML="";
+      const question=this.currentQuestion(),chars=this.splitAnswer(question.answer),container=$("character-slots");container.innerHTML="";
       if(chars.length<=1)return;
-      chars.forEach((char,index)=>{const span=document.createElement("span");span.textContent=char;span.className=index<this.slotIndex?"done":index===this.slotIndex?"current":"";container.appendChild(span);});
+      chars.forEach((char,index)=>{const span=document.createElement("span");span.textContent=char;span.className=question.wholeAnswer?"current all-at-once":index<this.slotIndex?"done":index===this.slotIndex?"current":"";container.appendChild(span);});
     }
     applyGuide(){
       const question=this.currentQuestion(),difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
@@ -113,8 +116,8 @@
     correctAnswer(accuracy){
       this.correct+=1;this.combo+=1;this.bestCombo=Math.max(this.bestCombo,this.combo);this.accuracyTotal+=accuracy;
       this.skillGauge=Math.min(100,this.skillGauge+(this.mastery.level>=2?26:22));this.board.clear();
-      const chars=this.splitAnswer(this.currentQuestion().answer);
-      if(this.slotIndex<chars.length-1){this.slotIndex+=1;this.timeLeft=Math.max(3,this.timeLeft);this.renderSlots();this.applyGuide();this.message(accuracy>82?"PERFECT!":"GOOD!");window.DrawHero.Audio.play("success");this.updateHud();return;}
+      const units=this.answerUnits(this.currentQuestion());
+      if(this.slotIndex<units.length-1){this.slotIndex+=1;this.timeLeft=Math.max(3,this.timeLeft);this.renderSlots();this.applyGuide();this.message(accuracy>82?"PERFECT!":"GOOD!");window.DrawHero.Audio.play("success");this.updateHud();return;}
       this.completedQuestions+=1;
       this.game.recordAttempt(this.currentQuestion().type,true,accuracy);
       const diff=window.DrawHero.Levels.difficulties[this.game.difficulty];const fast=this.questionTime?this.timeLeft/this.questionTime:1;
@@ -202,7 +205,7 @@
       $("skill-fill").style.width=`${this.skillGauge}%`;this.updateTimer();
     }
     message(text){const box=$("battle-message");box.textContent=text;box.classList.remove("pop");void box.offsetWidth;box.classList.add("pop");}
-    pause(){if(!this.running)return;this.paused=true;$("pause-modal").hidden=false;}
+    pause(){if(!this.running)return;this.paused=true;if($("pause-stage"))$("pause-stage").textContent=this.stage?`${this.stage.world||0}-${this.stage.level||1}`:"—";if($("pause-score"))$("pause-score").textContent=this.score.toLocaleString();if($("pause-hearts"))$("pause-hearts").textContent=this.game.mode==="practice"?"∞":Array.from({length:Math.max(0,this.hp)},()=>"♥").join(" ");$("pause-modal").hidden=false;}
     resume(){if(!this.running)return;$("pause-modal").hidden=true;this.paused=false;this.lastTime=performance.now();}
     finish(victory){
       if(!this.running)return;this.running=false;cancelAnimationFrame(this.raf);$("pause-modal").hidden=true;

@@ -75,10 +75,12 @@
     return {binary,bounds,aspect:bounds.w/Math.max(1,bounds.h)};
   }
   function targetCanvas(character,fontFamily,fontWeight){
-    const canvas=document.createElement("canvas");canvas.width=240;canvas.height=240;
+    const canvas=document.createElement("canvas");canvas.width=720;canvas.height=420;
     const ctx=canvas.getContext("2d");ctx.fillStyle="#000";ctx.textAlign="center";ctx.textBaseline="middle";
-    ctx.font=`${fontWeight||700} 190px ${fontFamily||"Tahoma, Arial, sans-serif"}`;
-    ctx.fillText(character,120,125);return canvas;
+    const length=Array.from(String(character).replace(/\s+/g," ")).length;
+    const size=length<=1?300:length<=3?230:length<=6?150:length<=12?92:58;
+    ctx.font=`${fontWeight||700} ${size}px ${fontFamily||"Kanit, Tahoma, Arial, sans-serif"}`;
+    ctx.fillText(character,canvas.width/2,canvas.height/2+12,canvas.width-42);return canvas;
   }
   function nearby(binary,x,y,radius){
     let best=Infinity;

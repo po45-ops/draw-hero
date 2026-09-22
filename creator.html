@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&amp;family=Kanit:wght@300;400;500;600;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css?v=1.2.0">
   <link rel="stylesheet" href="./css/reference-theme.css?v=1.3.0">
+  <link rel="stylesheet" href="./css/concept-theme.css?v=2.0.0">
 </head>
 <body class="creator-body">
   <div class="creator-shell">
@@ -33,14 +34,16 @@
       <header class="creator-topbar"><div><small>LOCAL CONTENT TOOL</small><h1 id="creator-title">สร้างด่านใหม่</h1></div><div class="creator-status" id="creator-status">● บันทึกในเครื่องแล้ว</div></header>
 
       <section id="panel-stage-editor" class="creator-panel active" data-title="สร้างด่านใหม่">
+        <div class="creator-steps" aria-label="ขั้นตอนสร้างด่าน"><span class="active"><b>1</b> เนื้อหา</span><span><b>2</b> คำถาม</span><span><b>3</b> ความยาก</span><span><b>4</b> ฉาก</span><span><b>5</b> ทดลองเล่น</span></div>
+        <section class="quick-template-card editor-card"><div class="quick-template-heading"><div><small>QUICK START</small><h2>เลือกแม่แบบเริ่มต้น</h2><p>เลือกหัวข้อ ระบบจะตั้งค่าด่านให้พร้อมแก้ไขทันที</p></div><button id="creator-blank-template" class="text-button" type="button">เริ่มจากหน้าว่าง</button></div><div class="creator-template-grid"><button type="button" data-creator-template="thai"><i>ก</i><b>ก–ฮ ภาษาไทย</b><small>พยัญชนะพื้นฐาน</small></button><button type="button" data-creator-template="english"><i>AZ</i><b>A–Z ภาษาอังกฤษ</b><small>ตัวอักษรและคำศัพท์</small></button><button type="button" data-creator-template="number"><i>123</i><b>ตัวเลข 1–100</b><small>รู้จักจำนวน</small></button><button type="button" data-creator-template="phrase"><i>•••</i><b>คำและประโยค</b><small>เขียนครบแล้วร่ายครั้งเดียว</small></button><button type="button" data-creator-template="addsub"><i>＋−</i><b>บวก–ลบ</b><small>คณิตศาสตร์พื้นฐาน</small></button><button type="button" data-creator-template="muldiv"><i>×÷</i><b>คูณ–หาร</b><small>สูตรคูณและการแบ่ง</small></button></div></section>
         <div class="editor-grid">
           <form id="stage-form" class="editor-card">
             <h2>รายละเอียดด่าน</h2>
             <div class="field-grid">
               <label class="wide">ชื่อด่าน<input id="stage-name" required value="ด่านฝึกเวทของฉัน" maxlength="80"></label>
               <label class="wide">คำอธิบาย<textarea id="stage-description">ฝึกเขียนและพิชิตเหล่าก็อบลิน</textarea></label>
-              <label>โลก<select id="stage-world"><option value="1">World 1 — หมู่บ้าน</option><option value="2">World 2 — ป่าอักษร</option><option value="3">World 3 — ทะเลทราย</option><option value="4">World 4 — หอคอย</option><option value="5">World 5 — เมืองน้ำแข็ง</option><option value="6">World 6 — ปราสาท</option></select></label>
-              <label>ประเภทเนื้อหา<select id="stage-content-type"><option>thai_letter</option><option>english_letter</option><option>thai_word</option><option>english_word</option><option>number</option><option>shape</option><option>line</option><option>mixed</option></select></label>
+              <label>โลก<select id="stage-world"><option value="1">World 1 — ภาษาไทย</option><option value="2">World 2 — ภาษาอังกฤษ</option><option value="3">World 3 — ตัวเลข 1–100</option><option value="4">World 4 — คณิตศาสตร์</option></select></label>
+              <label>ประเภทเนื้อหา<select id="stage-content-type"><option>thai_letter</option><option>thai_word</option><option>thai_phrase</option><option>english_letter</option><option>english_word</option><option>english_phrase</option><option>number</option><option>math_add</option><option>math_subtract</option><option>math_multiply</option><option>math_divide</option><option>shape</option><option>line</option><option>mixed</option></select></label>
               <label>ภาษา<select id="stage-language"><option value="th">ไทย</option><option value="en">English</option><option value="mixed">ผสม</option></select></label>
               <label>ระดับ<select id="stage-difficulty"><option value="easy">ง่าย</option><option value="normal" selected>ปานกลาง</option><option value="hard">ยาก</option><option value="challenge">ท้าทาย</option></select></label>
               <label>เวลาต่อข้อ (วินาที)<input id="stage-time" type="number" min="0" max="120" value="9"></label>
@@ -76,7 +79,7 @@
           <form id="question-form" class="editor-card"><h2>รายละเอียดคำถาม</h2><div class="field-grid">
             <label>โจทย์<input id="question-display" required placeholder="เช่น ก หรือ cat"></label><label>คำตอบ<input id="question-answer" required placeholder="คำตอบที่ต้องเขียน"></label>
             <label>ภาษา<select id="question-language"><option value="th">ไทย</option><option value="en">English</option><option value="number">ตัวเลข</option><option value="symbol">สัญลักษณ์</option></select></label>
-            <label>ประเภท<select id="question-type"><option>thai_letter</option><option>english_letter</option><option>thai_word</option><option>english_word</option><option>number</option><option>shape</option><option>line</option><option>mixed</option></select></label>
+            <label>ประเภท<select id="question-type"><option>thai_letter</option><option>thai_word</option><option>thai_phrase</option><option>english_letter</option><option>english_word</option><option>english_phrase</option><option>number</option><option>math_add</option><option>math_subtract</option><option>math_multiply</option><option>math_divide</option><option>shape</option><option>line</option><option>mixed</option></select></label>
             <label class="wide">คำใบ้<input id="question-hint" placeholder="ข้อความช่วยผู้เรียน"></label>
             <label>ระดับ<select id="question-difficulty"><option value="easy">ง่าย</option><option value="normal" selected>ปานกลาง</option><option value="hard">ยาก</option><option value="challenge">ท้าทาย</option></select></label>
             <label>เวลา<input id="question-time" type="number" min="0" max="120" value="9"></label>
@@ -84,7 +87,7 @@
             <label>Guide<select id="question-guide"><option value="full">Full</option><option value="dotted" selected>Dotted</option><option value="fade">Fade</option><option value="none">None</option></select></label>
             <label>Threshold<input id="question-threshold" type="number" min="20" max="95" value="55"></label><label>คะแนน<input id="question-reward" type="number" min="0" value="100"></label>
           </div><div class="form-actions"><button class="fantasy-button primary" type="submit">เพิ่มคำถาม</button><button id="question-clear" class="fantasy-button" type="button">ล้างฟอร์ม</button></div></form>
-          <aside class="editor-card"><h2>ตัวอย่าง Question Schema</h2><pre id="question-preview">{}</pre><p>คำหรือวลีหลายตัวจะถูกแบ่งเป็นช่องให้ผู้เรียนเขียนทีละตัวอักษรอัตโนมัติ</p></aside>
+          <aside class="editor-card"><h2>ตัวอย่าง Question Schema</h2><pre id="question-preview">{}</pre><p>คำหรือประโยคสามารถเขียนให้ครบในกระดาน แล้วกดร่ายเวทเพียงครั้งเดียว</p></aside>
         </div>
       </section>
 
@@ -114,6 +117,6 @@
 
   <script src="./js/storage.js?v=1.3.0"></script>
   <script src="./js/drawing.js"></script>
-  <script src="./js/creator.js?v=1.3.0"></script>
+  <script src="./js/creator.js?v=2.0.0"></script>
 </body>
 </html>

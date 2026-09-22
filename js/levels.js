@@ -8,35 +8,38 @@
     challenge:{ id:"challenge", label:"CHALLENGE", thai:"ท้าทาย", speed:1.8, timeLimit:5, threshold:68, guideMode:"none", simultaneous:3, scoreMultiplier:2, color:"#e74848", icon:"♛" }
   };
   const worlds = [
-    { id:1, name:"หมู่บ้านแห่งแสง", short:"เส้นและรูปทรง", icon:"⌂", color:"#37b9ff" },
-    { id:2, name:"ป่าแห่งอักษร", short:"พยัญชนะไทย", icon:"♣", color:"#55c271" },
-    { id:3, name:"ทะเลทรายตัวอักษร", short:"A–Z และตัวเลข", icon:"☀", color:"#d5a942" },
-    { id:4, name:"หอคอยแห่งภาษา", short:"คำภาษาไทย", icon:"♜", color:"#7557ff" },
-    { id:5, name:"เมืองน้ำแข็ง", short:"English Words", icon:"❄", color:"#86d7ff" },
-    { id:6, name:"ปราสาทจอมมาร", short:"Mixed Challenge", icon:"♚", color:"#e74848" }
+    { id:1, name:"หมู่บ้านแห่งแสง", short:"พยัญชนะไทย คำ และประโยค", badge:"ก–ฮ", icon:"⌂", color:"#37b9ff", art:"../assets/backgrounds/worlds/world-1.jpg" },
+    { id:2, name:"ป่าเวทมนตร์", short:"ตัวอักษรและคำภาษาอังกฤษ", badge:"A–Z", icon:"♣", color:"#55c271", art:"../assets/backgrounds/worlds/world-2.jpg" },
+    { id:3, name:"หุบเขาตัวเลข", short:"ฝึกเขียนตัวเลขตั้งแต่ 1–100", badge:"1–100", icon:"123", color:"#ef9a42", art:"../assets/backgrounds/worlds/world-3.jpg" },
+    { id:4, name:"ปราสาทคณิต", short:"การบวก ลบ คูณ และหาร", badge:"+ − × ÷", icon:"∑", color:"#a770ff", art:"../assets/backgrounds/worlds/world-4.jpg" }
   ];
+  const ids = (type,start,count) => C.byType(type).slice(start,start+count).map(q=>q.id);
   const make = (id, world, level, name, contentType, questionIds, enemyTypes, options) => Object.assign({
-    id, world, level, name, description:"ฝึกเขียนและปลดปล่อยพลังเวท", contentType, difficulty:"normal",
-    timeLimit:9, enemySpeed:1, questions:questionIds, enemyTypes, rewardXP:50 + world * 15,
-    rewardCoins:20 + world * 5, guideMode:"dotted", recognitionThreshold:55, boss:false
+    id, world, level, name, symbol:"✦", description:"ฝึกเขียนและปลดปล่อยพลังเวท", contentType, difficulty:"normal",
+    timeLimit:12, enemySpeed:1, questions:questionIds, enemyTypes, rewardXP:50 + world * 15,
+    rewardCoins:20 + world * 5, guideMode:"dotted", recognitionThreshold:52, boss:false
   }, options || {});
 
   const levels = [
-    make("world1_level1",1,1,"เส้นแห่งเวทมนตร์","line",C.sample("line",5),["goblin"],{difficulty:"easy",timeLimit:12,guideMode:"full",recognitionThreshold:43}),
-    make("world1_level2",1,2,"ผนึกวงกลม","shape",C.sample("shape",4),["goblin","skeleton"],{difficulty:"easy",timeLimit:12,guideMode:"full",recognitionThreshold:45}),
-    make("world1_level3",1,3,"ผู้พิทักษ์รูปทรง","shape",C.sample("shape",4).concat(C.sample("line",2)),["orc"],{recognitionThreshold:50}),
-    make("world2_level1",2,1,"ก ข ค แห่งพงไพร","thai_letter",C.sample("thai_letter",6),["goblin","ghost"]),
-    make("world2_level2",2,2,"เสียงเรียกจากป่า","thai_letter",C.byType("thai_letter").slice(6,13).map(q=>q.id),["skeleton","shadow"]),
-    make("world3_level1",3,1,"โอเอซิสตัวเลข","number",C.sample("number",8),["goblin","orc"]),
-    make("world3_level2",3,2,"อักษรแห่งผืนทราย","english_letter",C.sample("english_letter",10),["skeleton","armoredDemon"]),
-    make("world4_level1",4,1,"คำวิเศษไทย","thai_word",C.sample("thai_word",8),["shadow","orc"],{timeLimit:12}),
-    make("world4_level2",4,2,"หอคอยนักอ่าน","thai_word",C.byType("thai_word").slice(7,15).map(q=>q.id),["armoredDemon"],{timeLimit:12}),
-    make("world5_level1",5,1,"Frozen Words","english_word",C.sample("english_word",8),["ghost","shadow"],{timeLimit:12}),
-    make("world5_level2",5,2,"Library of Ice","english_word",C.byType("english_word").slice(7,15).map(q=>q.id),["armoredDemon"],{timeLimit:12}),
-    make("world6_level1",6,1,"ประตูคำท้าทาย","mixed",C.sample("thai_word",3).concat(C.sample("english_word",3),C.sample("number",2)),["shadow","armoredDemon"],{difficulty:"hard",timeLimit:8,recognitionThreshold:60}),
-    make("world6_boss",6,2,"จอมมารแห่งความรู้","mixed",C.sample("thai_phrase",2).concat(C.sample("english_phrase",2),C.sample("shape",2)),["bossDemon"],{difficulty:"challenge",timeLimit:10,enemySpeed:.7,recognitionThreshold:58,boss:true,rewardXP:500,rewardCoins:250})
+    make("world1_level1",1,1,"ก–ง แห่งแสง","thai_letter",ids("thai_letter",0,7),["goblin"],{symbol:"ก",difficulty:"easy",guideMode:"full",recognitionThreshold:45}),
+    make("world1_level2",1,2,"จ–ณ ผู้พิทักษ์","thai_letter",ids("thai_letter",7,12),["goblin","skeleton"],{symbol:"จ"}),
+    make("world1_level3",1,3,"คำวิเศษไทย","thai_word",ids("thai_word",0,8),["orc","shadow"],{symbol:"กา",timeLimit:18,recognitionThreshold:48}),
+    make("world1_level4",1,4,"ประโยคแห่งความรู้","thai_phrase",ids("thai_phrase",0,5),["armoredDemon"],{symbol:"…",timeLimit:30,recognitionThreshold:44}),
+    make("world2_level1",2,1,"A–G Magic","english_letter",ids("english_letter",0,7),["goblin"],{symbol:"A",difficulty:"easy",guideMode:"full",recognitionThreshold:46}),
+    make("world2_level2",2,2,"H–P Forest","english_letter",ids("english_letter",7,9),["skeleton","ghost"],{symbol:"H"}),
+    make("world2_level3",2,3,"Hero Words","english_word",ids("english_word",0,8),["orc","shadow"],{symbol:"CAT",timeLimit:18,recognitionThreshold:50}),
+    make("world2_level4",2,4,"Magic Sentences","english_phrase",ids("english_phrase",0,5),["armoredDemon"],{symbol:"…",timeLimit:30,recognitionThreshold:46}),
+    make("world3_level1",3,1,"ตัวเลข 1–10","number",ids("number",0,10),["goblin"],{symbol:"1",difficulty:"easy",guideMode:"full",recognitionThreshold:45}),
+    make("world3_level2",3,2,"ตัวเลข 11–30","number",ids("number",10,20),["goblin","skeleton"],{symbol:"20",timeLimit:14,recognitionThreshold:48}),
+    make("world3_level3",3,3,"ตัวเลข 31–60","number",ids("number",30,30),["orc","shadow"],{symbol:"50",timeLimit:14,recognitionThreshold:50}),
+    make("world3_level4",3,4,"ตัวเลข 61–100","number",ids("number",60,40),["armoredDemon"],{symbol:"100",timeLimit:15,recognitionThreshold:50}),
+    make("world4_level1",4,1,"การบวก","math_add",ids("math_add",0,6),["goblin","skeleton"],{symbol:"+",difficulty:"easy",timeLimit:18,recognitionThreshold:48}),
+    make("world4_level2",4,2,"การลบ","math_subtract",ids("math_subtract",0,6),["skeleton","orc"],{symbol:"−",timeLimit:18,recognitionThreshold:48}),
+    make("world4_level3",4,3,"การคูณ","math_multiply",ids("math_multiply",0,6),["orc","shadow"],{symbol:"×",difficulty:"hard",timeLimit:20,recognitionThreshold:50}),
+    make("world4_level4",4,4,"การหาร","math_divide",ids("math_divide",0,6),["shadow","armoredDemon"],{symbol:"÷",difficulty:"hard",timeLimit:20,recognitionThreshold:50}),
+    make("world4_boss",4,5,"จอมมารแห่งคณิตศาสตร์","mixed",ids("math_add",0,2).concat(ids("math_subtract",0,2),ids("math_multiply",0,2),ids("math_divide",0,2)),["bossDemon"],{hiddenFromMap:true,symbol:"♛",difficulty:"challenge",timeLimit:18,enemySpeed:.7,recognitionThreshold:50,boss:true,rewardXP:500,rewardCoins:250})
   ];
   const get = id => levels.find(level => level.id === id);
-  const forWorld = world => levels.filter(level => level.world === Number(world));
+  const forWorld = world => levels.filter(level => level.world === Number(world) && !level.hiddenFromMap);
   window.DrawHero.Levels = { difficulties, worlds, levels, get, forWorld };
 })();

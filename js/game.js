@@ -37,7 +37,7 @@
         this.save.stageStars[result.stageId]=Math.max(previous,result.stars);
         if(!previous)this.save.completedStages=(this.save.completedStages||0)+1;
         const stage=window.DrawHero.Levels.get(result.stageId);
-        if(stage)this.save.worldProgress=Math.max(this.save.worldProgress,Math.min(6,stage.world+(result.stars>0?1:0)));
+        if(stage)this.save.worldProgress=Math.max(this.save.worldProgress,Math.min(4,stage.world+(result.stars>0?1:0)));
       }
       this.persist();return {leveledUp:this.save.level>oldLevel,level:this.save.level,mastery};
     }
