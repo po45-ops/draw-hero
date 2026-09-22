@@ -211,3 +211,20 @@ button,.menu-button,.fantasy-button,.back-button,.carousel-arrow,.model-rotate,.
   .sub-screen .screen-header>.back-button{min-width:78px;padding-inline:8px}
   .sub-screen .screen-header h1{font-size:clamp(.82rem,4.35vw,1rem)!important}
 }
+
+/* Keep hero selection and its confirmation button inside one desktop viewport. */
+@media(min-width:1101px){
+  #screen-characters{height:100dvh;min-height:700px;overflow:hidden;padding-bottom:14px}
+  #screen-characters .screen-header{min-height:54px;margin-bottom:10px;padding-bottom:8px}
+  #screen-characters .character-select-layout{height:clamp(480px,58vh,540px);margin-block:0}
+  #screen-characters .character-showcase{height:100%;min-height:0}
+  #screen-characters .character-info{height:100%;min-height:0;overflow:hidden;padding:14px 18px}
+  #screen-characters .character-info h2{margin:4px 0;font-size:1.7rem;line-height:1.15}
+  #screen-characters .character-info h3{margin:8px 0;font-size:1rem}
+  #screen-characters .character-info p{margin:8px 0;line-height:1.45}
+  #screen-characters .mastery-panel{margin:8px 0;padding:8px 10px}
+  #screen-characters .stat-row{margin:7px 0}
+  #screen-characters .ability{min-height:44px;margin-top:7px;padding:7px 10px 7px 48px}
+  #screen-characters .ability:before{top:6px}
+  #screen-characters .screen-actions{flex:0 0 auto;margin-top:8px}
+}
