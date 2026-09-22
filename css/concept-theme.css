@@ -164,3 +164,49 @@ button,.menu-button,.fantasy-button,.back-button,.carousel-arrow,.model-rotate,.
   .spell-controls{grid-column:2;grid-row:3;display:grid;height:100%;grid-template-columns:1fr;grid-template-rows:1.15fr .85fr .85fr;gap:6px}
   .spell-controls .cast-button,.spell-controls .side-action{width:100%;height:100%;min-height:0;max-width:none}
 }
+
+/* Header collision guard: reserve independent columns for back, title and ornament. */
+.sub-screen .screen-header{
+  display:grid;
+  grid-template-columns:124px minmax(0,1fr) 124px;
+  gap:12px;
+  width:100%;
+  height:auto;
+  min-height:64px;
+  justify-content:stretch;
+}
+.sub-screen .screen-header>.back-button{
+  position:static;
+  left:auto;
+  grid-column:1;
+  justify-self:start;
+  align-self:center;
+}
+.sub-screen .screen-header>div:nth-child(2){
+  position:static!important;
+  grid-column:2;
+  min-width:0;
+  text-align:center;
+}
+.sub-screen .screen-header h1{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  text-wrap:balance;
+}
+.sub-screen .screen-header:after{
+  position:static;
+  grid-column:3;
+  justify-self:end;
+  align-self:center;
+  margin:0;
+}
+@media(max-width:760px){
+  .sub-screen .screen-header{grid-template-columns:88px minmax(0,1fr) 28px;gap:7px;min-height:58px}
+  .sub-screen .screen-header h1{font-size:clamp(.92rem,4.4vw,1.18rem)!important;line-height:1.18}
+}
+@media(max-width:360px){
+  .sub-screen .screen-header{grid-template-columns:78px minmax(0,1fr) 20px;gap:5px}
+  .sub-screen .screen-header>.back-button{min-width:78px;padding-inline:8px}
+  .sub-screen .screen-header h1{font-size:clamp(.82rem,4.35vw,1rem)!important}
+}
