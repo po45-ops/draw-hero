@@ -99,6 +99,33 @@
     const shape=Math.sqrt(forward*back);
     return clamp((shape*.82+Math.min(forward,back)*.08+aspect*.1)*100,0,100);
   }
+  function numericSegments(canvas,count){
+    const bounds=cropBounds(canvas);if(!bounds||count<1)return [];
+    if(count===1)return [normalize(canvas)].filter(Boolean);
+    const ctx=canvas.getContext("2d",{willReadFrequently:true}),data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    const occupied=[];
+    for(let x=bounds.x;x<bounds.x+bounds.w;x+=1){let hasInk=false;for(let y=bounds.y;y<bounds.y+bounds.h;y+=1){if(data[(y*canvas.width+x)*4+3]>30){hasInk=true;break;}}occupied.push(hasInk);}
+    const gaps=[];let start=-1;
+    occupied.forEach((hasInk,index)=>{if(!hasInk&&start<0)start=index;if((hasInk||index===occupied.length-1)&&start>=0){const end=hasInk?index:index+1;if(start>1&&end<occupied.length-1)gaps.push({start,end,width:end-start});start=-1;}});
+    const selected=gaps.sort((a,b)=>b.width-a.width).slice(0,count-1).map(gap=>bounds.x+(gap.start+gap.end)/2).sort((a,b)=>a-b);
+    while(selected.length<count-1)selected.push(bounds.x+bounds.w*(selected.length+1)/count);
+    selected.sort((a,b)=>a-b);
+    const edges=[bounds.x,...selected,bounds.x+bounds.w],segments=[];
+    for(let index=0;index<count;index+=1){const left=Math.floor(edges[index]),right=Math.ceil(edges[index+1]),width=Math.max(1,right-left),part=document.createElement("canvas");part.width=width;part.height=canvas.height;part.getContext("2d").drawImage(canvas,left,0,width,canvas.height,0,0,width,canvas.height);const normalized=normalize(part);if(normalized)segments.push(normalized);}
+    return segments;
+  }
+  function recognizeNumber(canvas,target){
+    const digits=Array.from(String(target));if(!digits.length||digits.some(char=>!/\d/.test(char)))return null;
+    const segments=numericSegments(canvas,digits.length);if(segments.length!==digits.length)return {match:false,recognized:"",score:0,confidence:-100,digits:[]};
+    const results=segments.map((segment,index)=>{
+      const scores=Array.from({length:10},(_,digit)=>{
+        let score=0;[targetCanvas(String(digit)),targetCanvas(String(digit),"Arial, sans-serif",400),targetCanvas(String(digit),"Tahoma, sans-serif",400)].forEach(sample=>{const normalized=normalize(sample);if(normalized)score=Math.max(score,compareNormalized(segment,normalized,false));});return {digit:String(digit),score};
+      }).sort((a,b)=>b.score-a.score);
+      const targetScore=scores.find(item=>item.digit===digits[index]).score,best=scores[0],runner=scores.find(item=>item.digit!==digits[index]);
+      return {target:digits[index],recognized:best.digit,targetScore:Math.round(targetScore),bestScore:Math.round(best.score),margin:Math.round(targetScore-(runner?runner.score:0))};
+    });
+    return {match:results.every(item=>item.recognized===item.target),recognized:results.map(item=>item.recognized).join(""),score:Math.round(results.reduce((sum,item)=>sum+item.targetScore,0)/results.length),confidence:Math.min(...results.map(item=>item.margin)),digits:results};
+  }
   function raster(userCanvas,target,options){
     const user=normalize(userCanvas); if(!user) return {score:0,mode:"raster",details:{reason:"empty"}};
     const strict=!!(options&&options.strict);
@@ -116,12 +143,13 @@
         if(candidateScore>runnerUp){runnerUp=candidateScore;runnerUpTarget=candidate;}
       });
     }
-    return {score:Math.round(best),mode:"raster",details:{aspect:+user.aspect.toFixed(2),strict,runnerUp:Math.round(runnerUp),margin:Math.round(best-runnerUp),runnerUpTarget}};
+    const numeric=options&&options.numeric?recognizeNumber(userCanvas,target):null;
+    return {score:numeric?numeric.score:Math.round(best),mode:"raster",details:{aspect:+user.aspect.toFixed(2),strict,runnerUp:Math.round(runnerUp),margin:Math.round(best-runnerUp),runnerUpTarget,numeric}};
   }
   function recognize(payload){
     if(payload.mode==="geometry") return geometry(payload.strokes,payload.target);
     return raster(payload.canvas,payload.target,payload.options);
   }
   window.DrawHero = window.DrawHero || {};
-  window.DrawHero.Recognizer = { recognize, geometry, raster, metrics };
+  window.DrawHero.Recognizer = { recognize, geometry, raster, metrics, recognizeNumber };
 })();

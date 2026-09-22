@@ -106,23 +106,25 @@
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
       const compactTarget=String(target).replace(/\s+/g,"");
       const strictWholeAnswer=mode==="raster"&&question.wholeAnswer&&Array.from(compactTarget).length>1;
+      const numericAnswer=strictWholeAnswer&&/^\d+$/.test(compactTarget);
       const targetLength=Math.max(2,Math.min(18,Array.from(compactTarget).length));
       const candidates=strictWholeAnswer?this.questions.map(item=>String(item.answer).trim()).concat(
         window.DrawHero.Content.byType(question.type).map(item=>String(item.answer).trim()),
         ["X".repeat(targetLength),"O".repeat(targetLength),"—".repeat(targetLength)]
       ):[];
-      const result=window.DrawHero.Recognizer.recognize({mode,strokes:this.board.strokes,canvas:this.board.exportInkCanvas(),target,options:{strict:strictWholeAnswer,candidates}});
+      const result=window.DrawHero.Recognizer.recognize({mode,strokes:this.board.strokes,canvas:this.board.exportInkCanvas(),target,options:{strict:strictWholeAnswer,candidates,numeric:numericAnswer}});
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
-      if(strictWholeAnswer)threshold=Math.max(threshold,52);
+      if(strictWholeAnswer)threshold=numericAnswer?28:Math.max(threshold,52);
       $("accuracy-fill").style.width=`${result.score}%`;$("accuracy-value").textContent=`${result.score}%`;
       const hasAlternatives=strictWholeAnswer&&candidates.some(value=>String(value).trim()!==String(target).trim());
-      const marginRequired=hasAlternatives?8:0;
+      const marginRequired=hasAlternatives&&!numericAnswer?8:0;
       const penStrokes=this.board.strokes.filter(stroke=>stroke.tool!=="eraser"&&stroke.points&&stroke.points.length);
       const requiredStrokes=strictWholeAnswer?Math.min(4,Math.max(2,Math.ceil(Array.from(compactTarget).length/6))):0;
       const completeEnough=!strictWholeAnswer||penStrokes.length>=requiredStrokes;
-      const confident=(!hasAlternatives||(result.details&&result.details.margin>=marginRequired))&&completeEnough;
+      const numericMatch=!numericAnswer||(result.details&&result.details.numeric&&result.details.numeric.match&&result.details.numeric.confidence>=-2);
+      const confident=(numericAnswer||!hasAlternatives||(result.details&&result.details.margin>=marginRequired))&&numericMatch&&completeEnough;
       this.showRecognitionFeedback(result.score,threshold,confident);
       if(window.DRAW_HERO_DEBUG){$("debug-panel").hidden=false;$("debug-panel").textContent=`score ${result.score} / ${threshold} • ${question.id} • ${JSON.stringify(result.details)}`;}
       if(result.score>=threshold&&confident)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
