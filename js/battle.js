@@ -90,28 +90,42 @@
     }
     renderSlots(){
       const question=this.currentQuestion(),chars=this.splitAnswer(question.answer),container=$("character-slots");container.innerHTML="";
+      if(question.type.startsWith("math_"))return;
       if(chars.length<=1)return;
       chars.forEach((char,index)=>{const span=document.createElement("span");span.textContent=char;span.className=question.wholeAnswer?"current all-at-once":index<this.slotIndex?"done":index===this.slotIndex?"current":"";container.appendChild(span);});
     }
     applyGuide(){
-      const question=this.currentQuestion(),difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
-      let guide=(this.game.save.settings.showGuide===false)?"none":(question.guideMode||this.stage.guideMode||difficulty.guideMode);
-      if(this.game.mode==="practice"&&this.stage.guideMode)guide=this.stage.guideMode;
-      this.board.setGuide(this.currentCharacter(),guide);
+      // Keep the writing surface blank. Showing the answer as a trace gives away
+      // maths answers and makes word/phrase recognition impossible to assess fairly.
+      this.board.setGuide("","none");
     }
     updateEnemyBubbles(){this.enemies.forEach((enemy,index)=>{const q=index===0?this.currentQuestion():enemy.question;const bubble=enemy.element.querySelector(".target-bubble");if(bubble)bubble.textContent=q.display;});}
     cast(){
       if(!this.running||this.paused||!this.board||!this.board.hasDrawing()){this.message("วาดคำตอบก่อนนะ!","warn");return;}
       const question=this.currentQuestion(),target=this.currentCharacter();
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
-      const result=window.DrawHero.Recognizer.recognize({mode,strokes:this.board.strokes,canvas:this.board.exportInkCanvas(),target,options:{}});
+      const compactTarget=String(target).replace(/\s+/g,"");
+      const strictWholeAnswer=mode==="raster"&&question.wholeAnswer&&Array.from(compactTarget).length>1;
+      const targetLength=Math.max(2,Math.min(18,Array.from(compactTarget).length));
+      const candidates=strictWholeAnswer?this.questions.map(item=>String(item.answer).trim()).concat(
+        window.DrawHero.Content.byType(question.type).map(item=>String(item.answer).trim()),
+        ["X".repeat(targetLength),"O".repeat(targetLength),"—".repeat(targetLength)]
+      ):[];
+      const result=window.DrawHero.Recognizer.recognize({mode,strokes:this.board.strokes,canvas:this.board.exportInkCanvas(),target,options:{strict:strictWholeAnswer,candidates}});
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
+      if(strictWholeAnswer)threshold=Math.max(threshold,52);
       $("accuracy-fill").style.width=`${result.score}%`;$("accuracy-value").textContent=`${result.score}%`;
-      this.showRecognitionFeedback(result.score,threshold);
+      const hasAlternatives=strictWholeAnswer&&candidates.some(value=>String(value).trim()!==String(target).trim());
+      const marginRequired=hasAlternatives?8:0;
+      const penStrokes=this.board.strokes.filter(stroke=>stroke.tool!=="eraser"&&stroke.points&&stroke.points.length);
+      const requiredStrokes=strictWholeAnswer?Math.min(4,Math.max(2,Math.ceil(Array.from(compactTarget).length/6))):0;
+      const completeEnough=!strictWholeAnswer||penStrokes.length>=requiredStrokes;
+      const confident=(!hasAlternatives||(result.details&&result.details.margin>=marginRequired))&&completeEnough;
+      this.showRecognitionFeedback(result.score,threshold,confident);
       if(window.DRAW_HERO_DEBUG){$("debug-panel").hidden=false;$("debug-panel").textContent=`score ${result.score} / ${threshold} • ${question.id} • ${JSON.stringify(result.details)}`;}
-      if(result.score>=threshold)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
+      if(result.score>=threshold&&confident)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
     }
     correctAnswer(accuracy){
       this.correct+=1;this.combo+=1;this.bestCombo=Math.max(this.bestCombo,this.combo);this.accuracyTotal+=accuracy;
@@ -125,13 +139,14 @@
       const critical=this.combo>0&&this.combo%5===0;this.score+=gained;this.attackEnemy(critical?2:1,gained,true,critical);this.message(critical?`CRITICAL COMBO x${this.combo}!`:(accuracy>82?"PERFECT!":"GOOD!"));
       window.DrawHero.Audio.play(critical?"critical":"spell");this.advanceAfterHit();
     }
-    showRecognitionFeedback(score,threshold){
+    showRecognitionFeedback(score,threshold,confident=true){
       const node=$("recognition-feedback");if(!node)return;let state="retry",text="ปรับรูปทรงแล้วลองอีกครั้ง";
-      if(score>=threshold){state="success";text=score>=85?"เส้นสวยและแม่นยำมาก":"ผ่านแล้ว — รูปทรงถูกต้อง";}
+      if(score>=threshold&&confident){state="success";text=score>=85?"เส้นสวยและแม่นยำมาก":"ผ่านแล้ว — รูปทรงถูกต้อง";}
+      else if(score>=threshold&&!confident){state="retry";text="รูปแบบยังไม่ตรงกับคำตอบ กรุณาเขียนใหม่ให้ครบ";}
       else if(score>=Math.max(20,threshold-15)){state="close";text=`ใกล้แล้ว อีก ${Math.max(1,threshold-score)}% • ลากเส้นให้ใกล้แบบมากขึ้น`;}
       node.className=`recognition-feedback ${state}`;node.textContent=text;
     }
-    wrongAnswer(score){this.wrong+=1;this.combo=0;this.game.recordAttempt(this.currentQuestion().type,false,score);this.message(score>0?`ใกล้แล้ว! ${score}%`:"ยังไม่มีเส้นเวท");if(this.game.save.settings.showGuide!==false)this.board.setGuide(this.currentCharacter(),"dotted");window.DrawHero.Audio.play("wrong");this.updateHud();}
+    wrongAnswer(score){this.wrong+=1;this.combo=0;this.game.recordAttempt(this.currentQuestion().type,false,score);this.message(score>0?`ใกล้แล้ว! ${score}%`:"ยังไม่มีเส้นเวท");window.DrawHero.Audio.play("wrong");this.updateHud();}
     attackEnemy(damage,score,animate=true,critical=false){
       const enemy=this.activeEnemy();if(!enemy)return;if(animate)this.playHeroAction(critical?"skill":"attack",critical?900:720);this.impactUntil=performance.now()+(critical?150:75);
       if(enemy.shield>0){enemy.shield-=1;enemy.element.classList.remove("has-shield");enemy.element.classList.add("shield-break");this.message("เกราะแตก!");window.DrawHero.Audio.play("shield");damage=0;}
@@ -159,7 +174,7 @@
       if(!this.running||this.paused)return;
       const unlimited=this.game.mode==="practice"||this.game.characterId==="mimi";
       if(this.hintUsed&&!unlimited){this.message("ใช้คำใบ้ของ Wave นี้แล้ว");return;}
-      this.hintUsed=true;this.board.setGuide(this.currentCharacter(),"full");$("hint-count").textContent=unlimited?"ไม่จำกัด":"ใช้แล้ว";this.message(this.currentQuestion().hint||`เขียน ${this.currentCharacter()}`);
+      this.hintUsed=true;$("hint-count").textContent=unlimited?"ไม่จำกัด":"ใช้แล้ว";this.message(this.currentQuestion().hint||"อ่านโจทย์ แล้วเขียนคำตอบให้ครบ");
     }
     useSkill(){
       if(this.skillGauge<100){this.message(`พลังสกิล ${Math.round(this.skillGauge)}%`);return;}

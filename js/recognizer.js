@@ -87,23 +87,36 @@
     for(let yy=Math.max(0,y-radius);yy<=Math.min(SIZE-1,y+radius);yy+=1){for(let xx=Math.max(0,x-radius);xx<=Math.min(SIZE-1,x+radius);xx+=1){if(binary[yy*SIZE+xx])best=Math.min(best,Math.hypot(xx-x,yy-y));}}
     return best;
   }
-  function directionalScore(source,target){
+  function directionalScore(source,target,radius=5){
     let count=0,total=0;
-    for(let y=0;y<SIZE;y+=1){for(let x=0;x<SIZE;x+=1){if(source[y*SIZE+x]){count+=1;const d=nearby(target,x,y,5);total+=Number.isFinite(d)?Math.max(0,1-d/6):0;}}}
+    for(let y=0;y<SIZE;y+=1){for(let x=0;x<SIZE;x+=1){if(source[y*SIZE+x]){count+=1;const d=nearby(target,x,y,radius);total+=Number.isFinite(d)?Math.max(0,1-d/(radius+1)):0;}}}
     return count?total/count:0;
   }
-  function compareNormalized(a,b){
-    const forward=directionalScore(a.binary,b.binary),back=directionalScore(b.binary,a.binary);
+  function compareNormalized(a,b,strict){
+    const radius=strict?2:5;
+    const forward=directionalScore(a.binary,b.binary,radius),back=directionalScore(b.binary,a.binary,radius);
     const aspect=proximity(a.aspect,b.aspect,Math.max(1,b.aspect));
-    return clamp((Math.sqrt(forward*back)*.86+aspect*.14)*100,0,100);
+    const shape=Math.sqrt(forward*back);
+    return clamp((shape*.82+Math.min(forward,back)*.08+aspect*.1)*100,0,100);
   }
   function raster(userCanvas,target,options){
     const user=normalize(userCanvas); if(!user) return {score:0,mode:"raster",details:{reason:"empty"}};
+    const strict=!!(options&&options.strict);
     const variants=[targetCanvas(target),targetCanvas(target,"Arial, sans-serif",400),targetCanvas(target,"Tahoma, sans-serif",400)];
     let best=0;
-    variants.forEach(canvas=>{const normalized=normalize(canvas);if(normalized)best=Math.max(best,compareNormalized(user,normalized));});
-    if(options && options.templateCanvases){options.templateCanvases.forEach(canvas=>{const normalized=normalize(canvas);if(normalized)best=Math.max(best,compareNormalized(user,normalized));});}
-    return {score:Math.round(best),mode:"raster",details:{aspect:+user.aspect.toFixed(2)}};
+    variants.forEach(canvas=>{const normalized=normalize(canvas);if(normalized)best=Math.max(best,compareNormalized(user,normalized,strict));});
+    if(options && options.templateCanvases){options.templateCanvases.forEach(canvas=>{const normalized=normalize(canvas);if(normalized)best=Math.max(best,compareNormalized(user,normalized,strict));});}
+    let runnerUp=0,runnerUpTarget="";
+    if(strict&&options&&Array.isArray(options.candidates)){
+      Array.from(new Set(options.candidates.map(value=>String(value).trim()).filter(value=>value&&value!==String(target).trim()))).forEach(candidate=>{
+        let candidateScore=0;
+        [targetCanvas(candidate),targetCanvas(candidate,"Arial, sans-serif",400),targetCanvas(candidate,"Tahoma, sans-serif",400)].forEach(canvas=>{
+          const normalized=normalize(canvas);if(normalized)candidateScore=Math.max(candidateScore,compareNormalized(user,normalized,true));
+        });
+        if(candidateScore>runnerUp){runnerUp=candidateScore;runnerUpTarget=candidate;}
+      });
+    }
+    return {score:Math.round(best),mode:"raster",details:{aspect:+user.aspect.toFixed(2),strict,runnerUp:Math.round(runnerUp),margin:Math.round(best-runnerUp),runnerUpTarget}};
   }
   function recognize(payload){
     if(payload.mode==="geometry") return geometry(payload.strokes,payload.target);
