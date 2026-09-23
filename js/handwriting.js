@@ -125,8 +125,7 @@
     if(/^\d+$/.test(target))return Array.from("0123456789");
     if(language==="th"||/[\u0e00-\u0e7f]/u.test(target)){
       const pool=new Set(Array.from("กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮะาเแโใไๆฯ"));
-      (DH.Content.questions||[]).filter(q=>q.language==="th").forEach(q=>units(q.answer).forEach(u=>pool.add(u)));
-      units(target).forEach(u=>pool.add(u));return [...pool];
+      units(target).forEach(u=>{pool.add(u);pool.add(u.replace(/[\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/gu,""));});return [...pool].filter(Boolean);
     }
     const letters=/^[A-Z\s.,!?'-]+$/.test(target)?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":/^[a-z\s.,!?'-]+$/.test(target)?"abcdefghijklmnopqrstuvwxyz":"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     return [...new Set([...Array.from(letters+"0123456789.,!?'-"),...units(target)])];
@@ -145,7 +144,8 @@
       const margin=wanted.score-(other?other.score:0);
       return {target:expected[index],recognized:best.unit,score:Math.round(wanted.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
     });
-    const accepted=results.every(r=>r.target===r.recognized&&r.score>=72&&r.margin>=3);
+    // Accept similar handwriting, including a near-tie, but reject a clear alternative.
+    const accepted=results.every(r=>r.score>=65&&r.margin>=-3);
     const wrong=results.some(r=>r.target!==r.recognized&&r.bestScore>=80&&r.margin<=-9);
     return {score:Math.round(results.reduce((sum,r)=>sum+r.score,0)/results.length),status:accepted?"correct":wrong?"incorrect":"uncertain",mode:"handwriting",details:{reason:accepted?"matched":wrong?"different_character":"ambiguous",units:results}};
   }

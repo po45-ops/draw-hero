@@ -17,7 +17,7 @@
       const math=question.type.startsWith("math_");
       // Read only the problem, never the numerical solution.
       let text=math?question.display:question.reading||question.display;
-      if(math)text=text.replace(/\+/g," บวก ").replace(/[−-]/g," ลบ ").replace(/×/g," คูณ ").replace(/÷/g," หาร ").replace(/=\s*\?/g," เท่ากับเท่าไร");
+      if(math)text=text.replace(/\+/g," บวก ").replace(/[−-]/g," ลบ ").replace(/×/g," คูณ ").replace(/÷/g," หาร ").replace(/=\s*\?/g," เท่ากับเท่าไร").replace(/\?/g,"จำนวนใด").replace(/=/g," เท่ากับ ");
       const language=question.language==="en"?"en-US":"th-TH";
       const voices=window.speechSynthesis.getVoices().filter(voice=>voice.lang.toLowerCase().startsWith(language.slice(0,2)));
       if(!voices.length){report("อุปกรณ์ยังไม่มีเสียงอ่านภาษานี้ กรุณาเปิดเสียงภาษาไทย/อังกฤษในอุปกรณ์แล้วลองใหม่");return false;}

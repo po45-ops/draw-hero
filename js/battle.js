@@ -27,8 +27,8 @@
     prepareStage(stage){
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty]||window.DrawHero.Levels.difficulties.easy;
       const merged=Object.assign({},stage);
-      merged.timeLimit=Number(stage.timeLimit)||difficulty.timeLimit;
-      merged.enemySpeed=(Number(stage.enemySpeed)||1)*difficulty.speed;
+      merged.timeLimit=stage.practice?Number(stage.timeLimit):Number(stage.timeLimit)||difficulty.timeLimit;
+      merged.enemySpeed=stage.practice?0:(Number(stage.enemySpeed)||1)*difficulty.speed;
       merged.recognitionThreshold=Number(stage.recognitionThreshold)||difficulty.threshold;
       merged.guideMode=stage.guideMode||difficulty.guideMode;
       merged.simultaneous=difficulty.simultaneous;
@@ -81,14 +81,14 @@
     splitAnswer(answer){return Array.from(String(answer)).filter(char=>char!==" ");}
     answerUnits(question){return question.wholeAnswer?[String(question.answer).trim()]:this.splitAnswer(question.answer);}
     currentCharacter(){const question=this.currentQuestion(),units=this.answerUnits(question);return units[Math.min(this.slotIndex,units.length-1)]||String(question.answer);}
-    categoryFor(question){if(question.type.startsWith("math_"))return"math";if(question.type.includes("phrase"))return"phrase";if(question.type.includes("word"))return"word";return question.type;}
+    categoryFor(question){if(question.type.startsWith("math_"))return"math";if(question.type.includes("phrase"))return"phrase";if(question.type.includes("word")||question.type.endsWith("_basic"))return"word";if(question.type==="english_lower")return"english_letter";return question.type;}
     setQuestion(){
       const q=this.currentQuestion();if(!q)return;
-      this.slotIndex=0;this.questionTime=Number(q.timeLimit)||this.stage.timeLimit;this.timeLeft=this.questionTime;
+      this.slotIndex=0;this.questionTime=this.stage.practice?this.stage.timeLimit:Number(q.timeLimit)||this.stage.timeLimit;this.timeLeft=this.questionTime;
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
       const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
       this.renderSlots();this.applyGuide();this.updateEnemyBubbles();this.updateHud();
-      window.DrawHero.Handwriting.prepare(this.currentCharacter(),q.language);
+      window.DrawHero.Handwriting.prepare(this.currentCharacter(),q.language).then(()=>{if(this.board&&this.currentQuestion()===q)this.board.redraw();});
       $("accuracy-fill").style.width="0%";$("accuracy-value").textContent="—";
       $("recognition-feedback").className="recognition-feedback";
       $("recognition-feedback").textContent="เขียนคำตอบให้ครบ แล้วกดร่ายเวท";
@@ -105,9 +105,10 @@
       chars.forEach((char,index)=>{const span=document.createElement("span");span.textContent=char;span.className=question.wholeAnswer?"current all-at-once":index<this.slotIndex?"done":index===this.slotIndex?"current":"";container.appendChild(span);});
     }
     applyGuide(){
-      // Keep the writing surface blank. Showing the answer as a trace gives away
-      // maths answers and makes word/phrase recognition impossible to assess fairly.
-      this.board.setGuide("","none");
+      const q=this.currentQuestion();
+      this.board.practiceFrame=!!this.stage.practice&&["thai_letter","english_letter","english_lower","number"].includes(q.type);
+      const guided=this.board.practiceFrame&&this.stage.guideMode!=="none";
+      this.board.setGuide(guided?this.currentCharacter():"",guided?this.stage.guideMode:"none");
     }
     updateEnemyBubbles(){this.enemies.forEach((enemy,index)=>{const q=index===0?this.currentQuestion():enemy.question;const bubble=enemy.element.querySelector(".target-bubble");if(bubble)bubble.textContent=q.display;});}
     cast(){
@@ -115,6 +116,12 @@
       const question=this.currentQuestion(),target=this.currentCharacter();
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
       const payload={mode,strokes:this.board.strokes,canvas:this.board.exportRecognitionCanvas(),target,options:{language:question.language}};
+      if(this.board.practiceFrame){
+        const fit=this.board.practiceFit(),feedback=$("recognition-feedback");
+        if(fit.inside<.94){feedback.textContent="เขียนให้อยู่ในกรอบจาง ๆ แล้วลองอีกครั้ง";feedback.className="recognition-feedback close";return;}
+        if(this.board.guide&&fit.coverage>=.6&&fit.precision>=.68){const score=Math.round((fit.coverage+fit.precision)*50);this.showRecognitionFeedback(score,60,true);this.correctAnswer(score);return;}
+        if(this.board.guide){feedback.textContent="ลองเติมเส้นให้คล้ายตัวอย่างและครบส่วน";feedback.className="recognition-feedback close";return;}
+      }
       const result=mode==="raster"?window.DrawHero.Handwriting.recognize(payload):window.DrawHero.Recognizer.recognize(payload);
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
@@ -125,7 +132,7 @@
         if(result.status==="empty"){feedback.textContent="ยังไม่มีเส้นคำตอบบนกระดาน";feedback.className="recognition-feedback retry";return;}
         if(result.status==="uncertain"){
           const reason=result.details.reason;
-          feedback.textContent=reason==="loading"?"กำลังเตรียมแบบตัวอักษร กรุณาลองอีกครั้ง":reason==="segmentation"?"ยังแยกตัวอักษรไม่ชัด ลองเว้นช่องระหว่างตัวและเขียนให้ครบ (ไม่นับผิด)":"ยังอ่านไม่ชัด กรุณาปรับเส้นแล้วลองอีกครั้ง (ไม่นับผิด)";
+          feedback.textContent=reason==="loading"?"กำลังเตรียมตัวอักษร…":reason==="segmentation"?"เขียนให้ครบ เว้นตัวเล็กน้อย • ไม่นับผิด":"ลองปรับรูปทรงอีกนิด • ไม่นับผิด";
           feedback.className="recognition-feedback close";
           window.DrawHero.Audio.play("retry");return;
         }
@@ -133,7 +140,7 @@
           feedback.textContent="ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
           this.wrongAnswer(result.score);return;
         }
-        this.showRecognitionFeedback(result.score,72,true);this.correctAnswer(result.score);return;
+        this.showRecognitionFeedback(result.score,65,true);this.correctAnswer(result.score);return;
       }
       this.showRecognitionFeedback(result.score,threshold,true);
       if(window.DRAW_HERO_DEBUG){$("debug-panel").hidden=false;$("debug-panel").textContent=`score ${result.score} / ${threshold} • ${question.id} • ${JSON.stringify(result.details)}`;}
@@ -205,15 +212,15 @@
         const frozen=now<this.freezeUntil||now<this.impactUntil;
         const slow=now<this.slowUntil ? .45 : 1;
         if(!frozen){
-          this.timeLeft=Math.max(0,this.timeLeft-delta);
+          if(this.questionTime>0)this.timeLeft=Math.max(0,this.timeLeft-delta);
           this.enemies.slice().forEach(enemy=>{let phase=1;if(enemy.data.boss&&enemy.hp<enemy.maxHp*.5)phase=1.35;enemy.distance-=delta*2.25*this.stage.enemySpeed*enemy.data.speed*slow*phase;this.positionEnemy(enemy);if(enemy.distance<=8)this.enemyReached(enemy);});
         }
-        if(this.timeLeft<=0){this.wrong+=1;this.combo=0;this.timeLeft=this.questionTime;this.message("หมดเวลา — รีบวาดใหม่!");window.DrawHero.Audio.play("wrong");}
+        if(this.questionTime>0&&this.timeLeft<=0){this.wrong+=1;this.combo=0;this.timeLeft=this.questionTime;this.message("หมดเวลา — รีบวาดใหม่!");window.DrawHero.Audio.play("wrong");}
         this.updateTimer();
       }
       this.raf=requestAnimationFrame(this.boundLoop);
     }
-    positionEnemy(enemy){enemy.element.style.left=`${Math.max(8,Math.min(96,enemy.distance))}%`;enemy.element.classList.toggle("is-warning",enemy.distance<=27&&enemy.distance>8);}
+    positionEnemy(enemy){const field=$("battlefield").clientWidth||1000,half=enemy.element.offsetWidth/2,edge=Math.max(8,(half+12)/field*100);enemy.element.style.left=`${Math.max(edge,Math.min(100-edge,enemy.distance))}%`;enemy.element.classList.toggle("is-warning",enemy.distance<=27&&enemy.distance>8);}
     enemyReached(enemy){
       if(enemy.attacking)return;enemy.attacking=true;const index=this.enemies.indexOf(enemy);if(index>=0)this.enemies.splice(index,1);
       const sprite=enemy.element.querySelector(".enemy-3d-sprite");if(sprite){sprite.classList.remove("pose-run");sprite.classList.add("pose-attack");}enemy.element.classList.add("enemy-strike");

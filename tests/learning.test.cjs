@@ -13,13 +13,14 @@ const context={window:{},document,console,setTimeout,clearTimeout,performance,Ui
 context.window.speechSynthesis={cancel(){},getVoices:()=>[{lang:"th-TH",localService:true},{lang:"en-US",localService:true}],speak(u){context.spoken=u;u.onend();}};
 context.window.SpeechSynthesisUtterance=function(text){this.text=text;};
 vm.createContext(context);
-for(const file of ["content","levels","handwriting","drawing","audio","battle"])vm.runInContext(fs.readFileSync(path.join(root,`js/${file}.js`),"utf8"),context);
+for(const file of ["content","word-lists","curriculum","levels","handwriting","drawing","practice-guide","audio","battle"])vm.runInContext(fs.readFileSync(path.join(root,`js/${file}.js`),"utf8"),context);
 const DH=context.window.DrawHero;
 function textCanvas(text,font="DH Handwriting",size=130){const c=createCanvas(1200,300),ctx=c.getContext("2d");ctx.font=`${size}px "${font}"`;ctx.fillStyle="#000";ctx.fillText(text,20,200);return c;}
 function recognize(c,target,language){return DH.Handwriting.recognize({canvas:c,target,options:{language}});}
 async function main(){
   await DH.Handwriting.ready;
   await DH.Handwriting.prepare("100","number");await DH.Handwriting.prepare("A","en");await DH.Handwriting.prepare("ก่า","th");
+  for(const q of DH.Content.questions.filter(q=>["thai_word","thai_phrase","thai_letter"].includes(q.type)))await DH.Handwriting.prepare(q.answer,q.language);
   let passed=0,uncertain=0;
   for(const target of ["1","6","61","100","A","B","ก","ข","กา","กบ","ขา","CAT","DOG","I GO TO SCHOOL"]){
     const result=recognize(textCanvas(target),target,/[ก-ฮ]/.test(target)?"th":"en");
@@ -65,6 +66,16 @@ async function main(){
     exportInkCanvas:()=>textCanvas("61"),canvas:{getBoundingClientRect:()=>({width:300,height:400})}
   });
   assert.equal(displayed.width/displayed.height,.75,"Recognition must retain the on-screen aspect ratio");
+  const practiceBoard={guide:"ก",canvas:{getBoundingClientRect:()=>({width:720,height:420})},practiceTemplate:DH.DrawingBoard.prototype.practiceTemplate};
+  const trace=practiceBoard.practiceTemplate();practiceBoard.exportRecognitionCanvas=()=>trace;
+  let fit=DH.DrawingBoard.prototype.practiceFit.call(practiceBoard);
+  assert.ok(fit.inside>=.94&&fit.coverage>=.6&&fit.precision>=.68,"Complete trace passes");
+  const shifted=createCanvas(720,420);shifted.getContext("2d").drawImage(trace,6,4);practiceBoard.exportRecognitionCanvas=()=>shifted;
+  fit=DH.DrawingBoard.prototype.practiceFit.call(practiceBoard);assert.ok(fit.coverage>=.6&&fit.precision>=.68,"Small handwriting offsets allowed");
+  practiceBoard.exportRecognitionCanvas=()=>scribble;
+  fit=DH.DrawingBoard.prototype.practiceFit.call(practiceBoard);assert.ok(fit.coverage<.6||fit.precision<.68,"Random ink must not pass tracing");
+  const outside=createCanvas(720,420),outsidePen=outside.getContext("2d");outsidePen.fillRect(0,0,720,10);practiceBoard.exportRecognitionCanvas=()=>outside;
+  assert.ok(DH.DrawingBoard.prototype.practiceFit.call(practiceBoard).inside<.94,"Out-of-frame ink rejected");
   // Integration: uncertain/blank submissions must not grant points or record mistakes.
   const engine={running:true,paused:false,game:{difficulty:"easy"},stage:{recognitionThreshold:47},
     board:{hasDrawing:()=>true,exportRecognitionCanvas:()=>ink,strokes:[]},
@@ -81,7 +92,17 @@ async function main(){
   assert.equal(basic.length,80);assert.ok(basic.every(q=>DH.Levels.levels.some(l=>l.questions.includes(q.id))));
   const ids=DH.Content.questions.map(q=>q.id);assert.equal(new Set(ids).size,ids.length);
   const stageIds=DH.Levels.levels.map(l=>l.id);assert.equal(new Set(stageIds).size,stageIds.length);
-  assert.equal(DH.Levels.forWorld(1).length,14);assert.equal(DH.Levels.forWorld(2).length,6);
+  assert.ok(DH.Levels.forWorld(1).length>14);assert.ok(DH.Levels.forWorld(2).length>6);
+  for(const language of ["th","en"])for(let grade=1;grade<=6;grade++){
+    const list=DH.WordLists.find(l=>l.language===language&&l.grade===grade);assert.ok(list.words.length>=150);
+    const lessons=DH.Levels.levels.filter(l=>l.grade===grade&&l.category==="basic"&&l.world===(language==="th"?1:2));
+    assert.equal(lessons.flatMap(l=>l.questions).length,list.words.length);
+  }
+  const thaiLetters=DH.Levels.forWorld(1).filter(l=>l.category==="letters").flatMap(l=>l.questions).map(id=>DH.Content.byId(id).answer).join("");
+  assert.equal(thaiLetters,"กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ");
+  assert.equal(DH.Content.byType("english_lower").length,26);
+  for(const q of DH.Content.questions.filter(q=>q.generated)){const [a,op,b,,c]=q.display.split(" "),x=b==="?"?Number(q.answer):Number(b),answer=c==="?"?Number(q.answer):Number(c);assert.equal(op==="+"?+a+x:op==="−"?+a-x:op==="×"?+a*x:+a/x,answer);}
+  const practice=DH.BattleEngine.prototype.prepareStage.call({game:{difficulty:"easy"}},{practice:true,timeLimit:0,enemySpeed:0});assert.equal(practice.timeLimit,0);assert.equal(practice.enemySpeed,0);
   DH.Audio.readQuestion(DH.Content.byType("math_add")[0],null);
   assert.equal(context.spoken.text,"3  บวก  4  เท่ากับเท่าไร");
   DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null);

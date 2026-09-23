@@ -51,6 +51,23 @@
     const group=offset/10+1;
     levels.push(make(`world1_basic_words_${group}`,1,6+group,`คำพื้นฐาน ป.1 ชุด ${group}`,"thai_word",basic.slice(offset,offset+10).map(q=>q.id),["goblin","skeleton"],{symbol:"คำ",timeLimit:25,description:"ฝึกเขียนและฟังคำอ่านจากบัญชีคำพื้นฐาน ป.1"}));
   }
+  // Keep IDs for saved progress, but put the complete alphabets before words.
+  const thaiOrder=["world1_level1","world1_level2","world1_letters_20_31","world1_letters_32_44","world1_level3","world1_level4"];
+  const enOrder=["world2_level1","world2_level2","world2_letters_q_z","world2_level3","world2_words_9_15","world2_level4"];
+  for(const [world,order] of [[1,thaiOrder],[2,enOrder]])order.forEach((id,index)=>{const stage=levels.find(l=>l.id===id);if(stage)stage.level=index+1;});
+  for(let offset=0;offset<26;offset+=9)levels.push(make(`english_lower_stage_${offset}`,2,7+offset/9|0,"ตัวพิมพ์เล็ก "+C.byType("english_lower").slice(offset,offset+9).map(q=>q.answer).filter((_,i,a)=>i===0||i===a.length-1).join("–"),"english_lower",ids("english_lower",offset,9),["goblin"],{symbol:"a",category:"letters"}));
+  for(const lang of ["th","en"])for(let grade=1;grade<=6;grade++){
+    const type=lang==="th"?"thai_basic":"english_basic",pool=C.byType(type).filter(q=>q.grade===grade);
+    for(let start=0;start<pool.length;start+=10)levels.push(make(`curriculum_${lang}_${grade}_${start}`,lang==="th"?1:2,100+grade*100+start/10,`คำพื้นฐาน ป.${grade} • ชุด ${start/10+1}`,type,pool.slice(start,start+10).map(q=>q.id),["goblin","skeleton"],{grade,category:"basic",symbol:lang==="th"?"คำ":"abc",description:`${pool.slice(start,start+3).map(q=>q.display).join(" • ")}`,timeLimit:30}));
+  }
+  for(let grade=1;grade<=6;grade++)for(const op of ["add","subtract","multiply","divide","mixed"]){
+    const pool=C.questions.filter(q=>q.generated&&q.grade===grade&&(op==="mixed"||q.type===`math_${op}`));
+    const label={add:"บวก",subtract:"ลบ",multiply:"คูณ",divide:"หาร",mixed:"โจทย์ผสม"}[op];
+    // Interleave operations in mixed practice, rather than 24 additions first.
+    const ordered=op==="mixed"?Array.from({length:24},(_,i)=>pool.filter(q=>q.id.endsWith(`_${i}`))).flat():pool;
+    for(let start=0;start<ordered.length;start+=12)levels.push(make(`math_extended_${grade}_${op}_${start}`,4,100+grade*100+start,`${label} ป.${grade} • ชุด ${start/12+1}`,op==="mixed"?"math_mixed":`math_${op}`,ordered.slice(start,start+12).map(q=>q.id),["goblin","skeleton"],{grade,category:"math",symbol:"±",timeLimit:30,description:"คำนวณและเติมจำนวนที่หายไป"}));
+  }
+  levels.forEach(stage=>{if(!stage.category)stage.category=/letter|lower/.test(stage.contentType)?"letters":/word/.test(stage.contentType)?"words":/phrase/.test(stage.contentType)?"phrases":stage.world===3?"numbers":"math";});
   levels.sort((a,b)=>a.world-b.world||a.level-b.level);
   const get = id => levels.find(level => level.id === id);
   const forWorld = world => levels.filter(level => level.world === Number(world) && !level.hiddenFromMap);
