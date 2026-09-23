@@ -39,6 +39,19 @@
     make("world4_level4",4,4,"การหาร","math_divide",ids("math_divide",0,6),["shadow","armoredDemon"],{symbol:"÷",difficulty:"hard",timeLimit:20,recognitionThreshold:50}),
     make("world4_boss",4,5,"จอมมารแห่งคณิตศาสตร์","mixed",ids("math_add",0,2).concat(ids("math_subtract",0,2),ids("math_multiply",0,2),ids("math_divide",0,2)),["bossDemon"],{hiddenFromMap:true,symbol:"♛",difficulty:"challenge",timeLimit:18,enemySpeed:.7,recognitionThreshold:50,boss:true,rewardXP:500,rewardCoins:250})
   ];
+  // Append stable new IDs so saved stars on existing stages remain valid.
+  levels.push(
+    make("world1_letters_20_31",1,5,"ด–ฟ ฝึกพยัญชนะ","thai_letter",ids("thai_letter",19,12),["goblin","skeleton"],{symbol:"ด",timeLimit:18}),
+    make("world1_letters_32_44",1,6,"ภ–ฮ ครบพยัญชนะไทย","thai_letter",ids("thai_letter",31,13),["goblin","skeleton"],{symbol:"ฮ",timeLimit:18}),
+    make("world2_letters_q_z",2,5,"Q–Z ครบตัวอักษรอังกฤษ","english_letter",ids("english_letter",16,10),["goblin","skeleton"],{symbol:"Z",timeLimit:18}),
+    make("world2_words_9_15",2,6,"คำศัพท์อังกฤษเพิ่มเติม","english_word",ids("english_word",8,7),["goblin","shadow"],{symbol:"BOOK",timeLimit:25})
+  );
+  const basic=C.byType("thai_word").filter(q=>q.source);
+  for(let offset=0;offset<basic.length;offset+=10){
+    const group=offset/10+1;
+    levels.push(make(`world1_basic_words_${group}`,1,6+group,`คำพื้นฐาน ป.1 ชุด ${group}`,"thai_word",basic.slice(offset,offset+10).map(q=>q.id),["goblin","skeleton"],{symbol:"คำ",timeLimit:25,description:"ฝึกเขียนและฟังคำอ่านจากบัญชีคำพื้นฐาน ป.1"}));
+  }
+  levels.sort((a,b)=>a.world-b.world||a.level-b.level);
   const get = id => levels.find(level => level.id === id);
   const forWorld = world => levels.filter(level => level.world === Number(world) && !level.hiddenFromMap);
   window.DrawHero.Levels = { difficulties, worlds, levels, get, forWorld };

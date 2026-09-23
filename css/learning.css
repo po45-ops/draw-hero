@@ -1,0 +1,8 @@
+/* Fonts are for recognition templates only; existing UI typography is unchanged. */
+@font-face{font-family:"DH Handwriting";src:url("../assets/fonts/Mali-Regular.ttf") format("truetype");font-display:swap}
+@font-face{font-family:"DH Thai Looped";src:url("../assets/fonts/NotoSansThaiLooped.ttf") format("truetype");font-display:swap}
+#screen-battle .target-panel{position:relative}
+#screen-battle .read-question{display:block;margin:0 auto 5px;min-height:36px;padding:4px 9px;border:1px solid #426780;background:#102b40;color:#e4f6ff;font-size:.7rem;cursor:pointer;z-index:2}
+#screen-battle .read-question:focus-visible{outline:2px solid #ffc447;outline-offset:2px}
+#screen-battle .read-question[aria-busy="true"]{border-color:#ffc447;box-shadow:0 0 12px #ffc44766}
+@media(max-width:760px){#screen-battle .read-question{position:absolute;bottom:2px;right:3px;margin:0;font-size:.6rem;min-height:32px;padding:2px 5px}#screen-battle .recognition-feedback{padding-right:76px}#screen-battle .character-slots{padding-right:64px}}

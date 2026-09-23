@@ -28,7 +28,15 @@
     undo(){const stroke=this.strokes.pop();if(stroke)this.redoStack.push(stroke);this.redraw();}
     redo(){const stroke=this.redoStack.pop();if(stroke)this.strokes.push(stroke);this.redraw();}
     hasDrawing(){return this.strokes.some(stroke=>stroke.tool!=="eraser"&&stroke.points.length>0);}
-    exportInkCanvas(){const canvas=document.createElement("canvas");canvas.width=this.canvas.width;canvas.height=this.canvas.height;const ctx=canvas.getContext("2d");this.strokes.forEach(stroke=>{if(stroke.tool==="eraser")return;ctx.strokeStyle="#000";ctx.fillStyle="#000";ctx.lineWidth=stroke.width;ctx.lineCap="round";ctx.lineJoin="round";const points=stroke.points;if(!points.length)return;ctx.beginPath();ctx.arc(points[0].x,points[0].y,stroke.width/2,0,Math.PI*2);ctx.fill();if(points.length>1){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i+=1)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();}});return canvas;}
+    exportInkCanvas(){const canvas=document.createElement("canvas");canvas.width=this.canvas.width;canvas.height=this.canvas.height;const ctx=canvas.getContext("2d");this.strokes.forEach(stroke=>{ctx.globalCompositeOperation=stroke.tool==="eraser"?"destination-out":"source-over";ctx.strokeStyle="#000";ctx.fillStyle="#000";ctx.lineWidth=stroke.width;ctx.lineCap="round";ctx.lineJoin="round";const points=stroke.points;if(!points.length)return;ctx.beginPath();ctx.arc(points[0].x,points[0].y,stroke.width/2,0,Math.PI*2);ctx.fill();if(points.length>1){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i+=1)ctx.lineTo(points[i].x,points[i].y);ctx.stroke();}});return canvas;}
+    exportRecognitionCanvas(){
+      const ink=this.exportInkCanvas(),rect=this.canvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return ink;
+      // Restore the shape the child actually sees on responsive canvases.
+      const scale=Math.min(2,2048/rect.width,1024/rect.height),out=document.createElement("canvas");
+      out.width=Math.max(1,Math.round(rect.width*scale));out.height=Math.max(1,Math.round(rect.height*scale));
+      out.getContext("2d").drawImage(ink,0,0,out.width,out.height);return out;
+    }
     destroy(){clearTimeout(this.fadeTimer);this.canvas.removeEventListener("pointerdown",this.onDown);this.canvas.removeEventListener("pointermove",this.onMove);this.canvas.removeEventListener("pointerup",this.onUp);this.canvas.removeEventListener("pointercancel",this.onUp);}
   }
   window.DrawHero = window.DrawHero || {};

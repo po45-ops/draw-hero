@@ -1,0 +1,97 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
+const {createCanvas,GlobalFonts}=require("@napi-rs/canvas");
+const root=path.resolve(__dirname,"..");
+GlobalFonts.registerFromPath(path.join(root,"assets/fonts/Mali-Regular.ttf"),"DH Handwriting");
+GlobalFonts.registerFromPath(path.join(root,"assets/fonts/NotoSansThaiLooped.ttf"),"DH Thai Looped");
+const arial="/System/Library/Fonts/Supplemental/Arial.ttf";
+if(fs.existsSync(arial))GlobalFonts.registerFromPath(arial,"Arial");
+const elements=new Map();
+const element=()=>({style:{},classList:{toggle(){},remove(){},add(){}},setAttribute(){},addEventListener(){}});
+const document={fonts:{load:async()=>[true]},createElement:type=>type==="canvas"?createCanvas(720,420):element(),getElementById:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);}};
+const context={window:{},document,console,setTimeout,clearTimeout,performance,Uint8Array,Float32Array};
+context.window.speechSynthesis={cancel(){},getVoices:()=>[{lang:"th-TH",localService:true},{lang:"en-US",localService:true}],speak(u){context.spoken=u;u.onend();}};
+context.window.SpeechSynthesisUtterance=function(text){this.text=text;};
+vm.createContext(context);
+for(const file of ["content","levels","handwriting","drawing","audio","battle"])vm.runInContext(fs.readFileSync(path.join(root,`js/${file}.js`),"utf8"),context);
+const DH=context.window.DrawHero;
+function textCanvas(text,font="DH Handwriting",size=130){const c=createCanvas(1200,300),ctx=c.getContext("2d");ctx.font=`${size}px "${font}"`;ctx.fillStyle="#000";ctx.fillText(text,20,200);return c;}
+function recognize(c,target,language){return DH.Handwriting.recognize({canvas:c,target,options:{language}});}
+async function main(){
+  await DH.Handwriting.ready;
+  await DH.Handwriting.prepare("100","number");await DH.Handwriting.prepare("A","en");await DH.Handwriting.prepare("ก่า","th");
+  let passed=0,uncertain=0;
+  for(const target of ["1","6","61","100","A","B","ก","ข","กา","กบ","ขา","CAT","DOG","I GO TO SCHOOL"]){
+    const result=recognize(textCanvas(target),target,/[ก-ฮ]/.test(target)?"th":"en");
+    console.log("CORRECT fixture",target,result.status,result.score,JSON.stringify(result.details));
+    assert.notEqual(result.status,"incorrect",`Correct answer ${target} must not be marked wrong`);
+    if(result.status==="correct")passed++;else uncertain++;
+  }
+  for(const [written,target] of [["A","B"],["C","G"],["6","9"],["16","61"],["1","100"],["CAT","CAR"],["DOG","CAT"],["ขา","กา"],["กา","ก่า"],["I GO TO SCHOOL","I GO TO BOOK"]]){
+    const result=recognize(textCanvas(written),target,/[ก-ฮ]/.test(target)?"th":"en");
+    console.log("WRONG fixture",written,"expected",target,result.status,result.score);
+    assert.notEqual(result.status,"correct",`${written} must not pass as ${target}`);
+  }
+  assert.equal(recognize(createCanvas(720,420),"ก","th").status,"empty");
+  // Independent curved pen fixture, not generated from recognition templates.
+  const handwritten=createCanvas(500,300),pen=handwritten.getContext("2d");
+  pen.lineWidth=14;pen.lineCap="round";pen.lineJoin="round";
+  pen.beginPath();pen.moveTo(180,30);pen.bezierCurveTo(150,70,112,165,151,229);pen.bezierCurveTo(194,285,268,219,236,176);pen.bezierCurveTo(209,142,155,164,145,215);pen.stroke();
+  pen.beginPath();pen.moveTo(294,67);pen.lineTo(320,35);pen.lineTo(320,250);pen.stroke();
+  const handResult=recognize(handwritten,"61","number");console.log("HANDWRITTEN 61",JSON.stringify(handResult));
+  assert.equal(handResult.status,"correct","Handwritten 61 must pass");
+  assert.notEqual(recognize(handwritten,"91","number").status,"correct");
+  for(const target of "0123456789"){
+    assert.equal(recognize(textCanvas(target),target,"number").status,"correct");
+    for(const written of "0123456789")if(written!==target)
+      assert.notEqual(recognize(textCanvas(written),target,"number").status,"correct",`${written} must not pass as ${target}`);
+  }
+  const scribble=createCanvas(400,250),scribblePen=scribble.getContext("2d");
+  scribblePen.lineWidth=12;scribblePen.beginPath();scribblePen.moveTo(20,20);
+  for(let i=0;i<24;i++)scribblePen.lineTo(20+(i*137)%350,20+(i*89)%210);
+  scribblePen.stroke();
+  assert.notEqual(recognize(scribble,"6","number").status,"correct","Scribbles must not pass");
+  const survey={correct:0,incorrect:[],uncertain:[]};
+  for(const q of DH.Content.questions.filter(q=>["thai_letter","english_letter","thai_word","thai_phrase"].includes(q.type))){
+    const r=recognize(textCanvas(q.answer,"DH Handwriting",70),q.answer,q.language);
+    if(r.status==="correct")survey.correct++;else survey[r.status].push({answer:q.answer,details:r.details});
+  }
+  console.log("FULL CONTENT SURVEY",JSON.stringify(survey));
+  assert.equal(survey.incorrect.length,0,"Legible content fixtures must never receive a wrong verdict");
+  const strokes=[{tool:"pen",width:10,points:[{x:40,y:30},{x:40,y:160}]},{tool:"eraser",width:30,points:[{x:40,y:20},{x:40,y:180}]}];
+  const ink=DH.DrawingBoard.prototype.exportInkCanvas.call({canvas:{width:720,height:420},strokes});
+  assert.equal(recognize(ink,"1","number").status,"empty","Erased ink must not be recognized");
+  const displayed=DH.DrawingBoard.prototype.exportRecognitionCanvas.call({
+    exportInkCanvas:()=>textCanvas("61"),canvas:{getBoundingClientRect:()=>({width:300,height:400})}
+  });
+  assert.equal(displayed.width/displayed.height,.75,"Recognition must retain the on-screen aspect ratio");
+  // Integration: uncertain/blank submissions must not grant points or record mistakes.
+  const engine={running:true,paused:false,game:{difficulty:"easy"},stage:{recognitionThreshold:47},
+    board:{hasDrawing:()=>true,exportRecognitionCanvas:()=>ink,strokes:[]},
+    currentQuestion:()=>({recognitionMode:"raster",language:"number"}),currentCharacter:()=>"1",
+    correctAnswer(){throw Error("Unexpected reward");},wrongAnswer(){throw Error("Unexpected penalty");},message(){}};
+  DH.BattleEngine.prototype.cast.call(engine);
+  engine.board.exportRecognitionCanvas=()=>textCanvas("11");
+  DH.BattleEngine.prototype.cast.call(engine);
+  for(const [type,expected] of [["thai_letter",44],["english_letter",26],["number",100]]){
+    const pool=DH.Content.byType(type),covered=new Set(DH.Levels.levels.flatMap(l=>l.questions));
+    assert.equal(pool.length,expected);assert.ok(pool.every(q=>covered.has(q.id)),`Stage coverage for ${type}`);
+  }
+  const basic=DH.Content.byType("thai_word").filter(q=>q.source);
+  assert.equal(basic.length,80);assert.ok(basic.every(q=>DH.Levels.levels.some(l=>l.questions.includes(q.id))));
+  const ids=DH.Content.questions.map(q=>q.id);assert.equal(new Set(ids).size,ids.length);
+  const stageIds=DH.Levels.levels.map(l=>l.id);assert.equal(new Set(stageIds).size,stageIds.length);
+  assert.equal(DH.Levels.forWorld(1).length,14);assert.equal(DH.Levels.forWorld(2).length,6);
+  DH.Audio.readQuestion(DH.Content.byType("math_add")[0],null);
+  assert.equal(context.spoken.text,"3  บวก  4  เท่ากับเท่าไร");
+  DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null);
+  assert.equal(context.spoken.text,"กอ ไก่");
+  DH.Audio.readQuestion(DH.Content.byType("english_word")[0],null);
+  assert.equal(context.spoken.lang,"en-US");
+  const previous=context.spoken;DH.Audio.configure({sound:false});
+  assert.equal(DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null),false);
+  assert.equal(context.spoken,previous,"Muted sound must not speak");
+  DH.Audio.stopSpeech();
+  console.log(`PASS: ${passed} accepted correct fixtures, ${uncertain} ambiguous (not penalized); wrong answers rejected, eraser, stage coverage and speech passed.`);
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});

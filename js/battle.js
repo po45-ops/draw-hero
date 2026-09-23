@@ -18,6 +18,7 @@
       $("eraser-tool").addEventListener("click",()=>this.selectTool("eraser"));
       $("stroke-width").addEventListener("input",event=>this.board&&this.board.setWidth(event.target.value));
       $("hint-button").addEventListener("click",()=>this.showHint());
+      $("read-question").addEventListener("click",()=>this.readQuestion(true));
       $("skill-button").addEventListener("click",()=>this.useSkill());
       $("pause-button").addEventListener("click",()=>this.pause());
       $("resume-button").addEventListener("click",()=>this.resume());
@@ -87,6 +88,15 @@
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
       const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
       this.renderSlots();this.applyGuide();this.updateEnemyBubbles();this.updateHud();
+      window.DrawHero.Handwriting.prepare(this.currentCharacter(),q.language);
+      $("accuracy-fill").style.width="0%";$("accuracy-value").textContent="—";
+      $("recognition-feedback").className="recognition-feedback";
+      $("recognition-feedback").textContent="เขียนคำตอบให้ครบ แล้วกดร่ายเวท";
+      this.readQuestion(false);
+    }
+    readQuestion(manual){
+      if(this.paused||!this.currentQuestion())return;
+      window.DrawHero.Audio.readQuestion(this.currentQuestion(),$("read-question"),manual?message=>this.message(message):null);
     }
     renderSlots(){
       const question=this.currentQuestion(),chars=this.splitAnswer(question.answer),container=$("character-slots");container.innerHTML="";
@@ -104,30 +114,30 @@
       if(!this.running||this.paused||!this.board||!this.board.hasDrawing()){this.message("วาดคำตอบก่อนนะ!","warn");return;}
       const question=this.currentQuestion(),target=this.currentCharacter();
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
-      const compactTarget=String(target).replace(/\s+/g,"");
-      const strictWholeAnswer=mode==="raster"&&question.wholeAnswer&&Array.from(compactTarget).length>1;
-      const numericAnswer=strictWholeAnswer&&/^\d+$/.test(compactTarget);
-      const targetLength=Math.max(2,Math.min(18,Array.from(compactTarget).length));
-      const candidates=strictWholeAnswer?this.questions.map(item=>String(item.answer).trim()).concat(
-        window.DrawHero.Content.byType(question.type).map(item=>String(item.answer).trim()),
-        ["X".repeat(targetLength),"O".repeat(targetLength),"—".repeat(targetLength)]
-      ):[];
-      const result=window.DrawHero.Recognizer.recognize({mode,strokes:this.board.strokes,canvas:this.board.exportInkCanvas(),target,options:{strict:strictWholeAnswer,candidates,numeric:numericAnswer}});
+      const payload={mode,strokes:this.board.strokes,canvas:this.board.exportRecognitionCanvas(),target,options:{language:question.language}};
+      const result=mode==="raster"?window.DrawHero.Handwriting.recognize(payload):window.DrawHero.Recognizer.recognize(payload);
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
-      if(strictWholeAnswer)threshold=numericAnswer?28:Math.max(threshold,52);
       $("accuracy-fill").style.width=`${result.score}%`;$("accuracy-value").textContent=`${result.score}%`;
-      const hasAlternatives=strictWholeAnswer&&candidates.some(value=>String(value).trim()!==String(target).trim());
-      const marginRequired=hasAlternatives&&!numericAnswer?8:0;
-      const penStrokes=this.board.strokes.filter(stroke=>stroke.tool!=="eraser"&&stroke.points&&stroke.points.length);
-      const requiredStrokes=strictWholeAnswer?Math.min(4,Math.max(2,Math.ceil(Array.from(compactTarget).length/6))):0;
-      const completeEnough=!strictWholeAnswer||penStrokes.length>=requiredStrokes;
-      const numericMatch=!numericAnswer||(result.details&&result.details.numeric&&result.details.numeric.match&&result.details.numeric.confidence>=-2);
-      const confident=(numericAnswer||!hasAlternatives||(result.details&&result.details.margin>=marginRequired))&&numericMatch&&completeEnough;
-      this.showRecognitionFeedback(result.score,threshold,confident);
+      if(mode==="raster"){
+        const feedback=$("recognition-feedback");
+        if(result.status==="empty"){feedback.textContent="ยังไม่มีเส้นคำตอบบนกระดาน";feedback.className="recognition-feedback retry";return;}
+        if(result.status==="uncertain"){
+          const reason=result.details.reason;
+          feedback.textContent=reason==="loading"?"กำลังเตรียมแบบตัวอักษร กรุณาลองอีกครั้ง":reason==="segmentation"?"ยังแยกตัวอักษรไม่ชัด ลองเว้นช่องระหว่างตัวและเขียนให้ครบ (ไม่นับผิด)":"ยังอ่านไม่ชัด กรุณาปรับเส้นแล้วลองอีกครั้ง (ไม่นับผิด)";
+          feedback.className="recognition-feedback close";
+          window.DrawHero.Audio.play("retry");return;
+        }
+        if(result.status==="incorrect"){
+          feedback.textContent="ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
+          this.wrongAnswer(result.score);return;
+        }
+        this.showRecognitionFeedback(result.score,72,true);this.correctAnswer(result.score);return;
+      }
+      this.showRecognitionFeedback(result.score,threshold,true);
       if(window.DRAW_HERO_DEBUG){$("debug-panel").hidden=false;$("debug-panel").textContent=`score ${result.score} / ${threshold} • ${question.id} • ${JSON.stringify(result.details)}`;}
-      if(result.score>=threshold&&confident)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
+      if(result.score>=threshold)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
     }
     correctAnswer(accuracy){
       this.correct+=1;this.combo+=1;this.bestCombo=Math.max(this.bestCombo,this.combo);this.accuracyTotal+=accuracy;
@@ -222,16 +232,16 @@
       $("skill-fill").style.width=`${this.skillGauge}%`;this.updateTimer();
     }
     message(text){const box=$("battle-message");box.textContent=text;box.classList.remove("pop");void box.offsetWidth;box.classList.add("pop");}
-    pause(){if(!this.running)return;this.paused=true;if($("pause-stage"))$("pause-stage").textContent=this.stage?`${this.stage.world||0}-${this.stage.level||1}`:"—";if($("pause-score"))$("pause-score").textContent=this.score.toLocaleString();if($("pause-hearts"))$("pause-hearts").textContent=this.game.mode==="practice"?"∞":Array.from({length:Math.max(0,this.hp)},()=>"♥").join(" ");$("pause-modal").hidden=false;}
+    pause(){if(!this.running)return;window.DrawHero.Audio.stopSpeech();this.paused=true;if($("pause-stage"))$("pause-stage").textContent=this.stage?`${this.stage.world||0}-${this.stage.level||1}`:"—";if($("pause-score"))$("pause-score").textContent=this.score.toLocaleString();if($("pause-hearts"))$("pause-hearts").textContent=this.game.mode==="practice"?"∞":Array.from({length:Math.max(0,this.hp)},()=>"♥").join(" ");$("pause-modal").hidden=false;}
     resume(){if(!this.running)return;$("pause-modal").hidden=true;this.paused=false;this.lastTime=performance.now();}
     finish(victory){
-      if(!this.running)return;this.running=false;cancelAnimationFrame(this.raf);$("pause-modal").hidden=true;
+      if(!this.running)return;window.DrawHero.Audio.stopSpeech();this.running=false;cancelAnimationFrame(this.raf);$("pause-modal").hidden=true;
       const elapsed=Math.max(1,Math.round((performance.now()-this.startTime)/1000));const accuracy=this.correct?Math.round(this.accuracyTotal/this.correct):0;
       const ratio=this.correct/Math.max(1,this.correct+this.wrong);const stars=ratio>=.9?3:ratio>=.65?2:1;
       const result={victory,stageId:this.stage.id,stageName:this.stage.name,score:this.score,accuracy,correct:this.correct,wrong:this.wrong,bestCombo:this.bestCombo,time:elapsed,stars:victory?stars:0,xp:victory?(this.stage.rewardXP||50):0,coins:victory?(this.stage.rewardCoins||20):0};
       if(victory)window.DrawHero.Audio.play("victory");if(this.onFinish)this.onFinish(result);
     }
-    stop(){this.running=false;this.paused=false;cancelAnimationFrame(this.raf);clearTimeout(this.heroActionTimer);this.pendingTimers.forEach(timer=>clearTimeout(timer));this.pendingTimers.clear();this.enemies=[];if($("enemy-layer"))$("enemy-layer").innerHTML="";if($("projectile-layer"))$("projectile-layer").innerHTML="";if($("pause-modal"))$("pause-modal").hidden=true;if($("tutorial-modal"))$("tutorial-modal").hidden=true;if($("battlefield"))$("battlefield").classList.remove("skill-burst");if(this.board){this.board.destroy();this.board=null;}}
+    stop(){window.DrawHero.Audio.stopSpeech();this.running=false;this.paused=false;cancelAnimationFrame(this.raf);clearTimeout(this.heroActionTimer);this.pendingTimers.forEach(timer=>clearTimeout(timer));this.pendingTimers.clear();this.enemies=[];if($("enemy-layer"))$("enemy-layer").innerHTML="";if($("projectile-layer"))$("projectile-layer").innerHTML="";if($("pause-modal"))$("pause-modal").hidden=true;if($("tutorial-modal"))$("tutorial-modal").hidden=true;if($("battlefield"))$("battlefield").classList.remove("skill-burst");if(this.board){this.board.destroy();this.board=null;}}
   }
   window.DrawHero.BattleEngine=BattleEngine;
 })();
