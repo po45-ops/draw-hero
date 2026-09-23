@@ -28,6 +28,7 @@ button,.menu-button,.fantasy-button,.back-button,.carousel-arrow,.model-rotate,.
 #screen-main .game-logo{margin:0;font-size:clamp(3.1rem,6.2vw,6.8rem);line-height:.93;white-space:nowrap}
 #screen-main .tagline{margin:12px 0 0;color:#ffe4a3;font-weight:600;font-size:clamp(.9rem,1.5vw,1.35rem);letter-spacing:.12em;text-shadow:0 3px 10px #000}
 #screen-main .hero-party{width:min(840px,100%);height:min(52vh,520px);margin:2px auto 0;overflow:visible}
+@media(min-width:1101px){#screen-main .hero-party{transform:translateY(-24px)}}
 #screen-main .hero-card-figure{width:31%;margin:0 -6.2%;overflow:visible}
 #screen-main .hero-sprite{object-fit:contain;filter:drop-shadow(0 13px 7px #000c) drop-shadow(0 0 9px var(--hero))}
 #screen-main .hero-nameplate{bottom:0;min-width:86px;padding:6px 14px;border:1px solid #c38b2b;border-radius:8px;background:#06101ee8;color:#fff;box-shadow:0 6px 14px #0008}
