@@ -230,164 +230,172 @@ button,.menu-button,.fantasy-button,.back-button,.carousel-arrow,.model-rotate,.
   #screen-characters .screen-actions{flex:0 0 auto;margin-top:8px}
 }
 
-/* Difficulty hall — premium card treatment based on the approved visual mockup. */
-#screen-difficulty .difficulty-card:nth-child(1){--difficulty-art:url("../assets/backgrounds/worlds/world-2.jpg")}
-#screen-difficulty .difficulty-card:nth-child(2){--difficulty-art:url("../assets/backgrounds/worlds/world-1.jpg")}
-#screen-difficulty .difficulty-card:nth-child(3){--difficulty-art:url("../assets/backgrounds/worlds/world-3.jpg")}
-#screen-difficulty .difficulty-card:nth-child(4){--difficulty-art:url("../assets/backgrounds/modes/boss.jpg")}
+/* Difficulty hall — production UI reconstructed from the supplied reference. */
+#screen-difficulty{
+  --difficulty-atlas:url("../assets/ui/difficulty-card-atlas-v2.png");
+  min-height:700px;
+  overflow:auto;
+}
+#screen-difficulty .screen-header:before{
+  content:"◆";
+  position:absolute;
+  left:50%;
+  bottom:-9px;
+  z-index:2;
+  padding:0 9px;
+  background:#071426;
+  color:#ffd058;
+  font-size:.8rem;
+  transform:translateX(-50%) rotate(45deg);
+  text-shadow:0 0 9px #ffc447;
+}
+#screen-difficulty .difficulty-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px 22px;
+  width:min(1180px,100%);
+  max-width:1180px;
+}
+#screen-difficulty .difficulty-card:nth-child(1){--atlas-x:0%;--atlas-y:0%}
+#screen-difficulty .difficulty-card:nth-child(2){--atlas-x:100%;--atlas-y:0%}
+#screen-difficulty .difficulty-card:nth-child(3){--atlas-x:0%;--atlas-y:100%}
+#screen-difficulty .difficulty-card:nth-child(4){--atlas-x:100%;--atlas-y:100%}
+#screen-difficulty .difficulty-card{
+  position:relative;
+  isolation:isolate;
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-rows:auto auto 1fr;
+  aspect-ratio:2.24/1;
+  min-height:222px;
+  padding:clamp(25px,2vw,34px) clamp(25px,2vw,34px) 24px 49%;
+  overflow:hidden;
+  border:2px solid transparent;
+  border-radius:18px!important;
+  background-color:#06101d!important;
+  background-image:var(--difficulty-atlas)!important;
+  background-position:var(--atlas-x) var(--atlas-y)!important;
+  background-size:200% 200%!important;
+  background-repeat:no-repeat!important;
+  text-align:left;
+  box-shadow:0 18px 38px #000b;
+}
+#screen-difficulty .difficulty-card:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  display:block;
+  width:auto;
+  height:auto;
+  border-radius:inherit;
+  background:linear-gradient(90deg,transparent 0 36%,rgba(2,7,14,.35) 47%,rgba(2,7,14,.70) 100%);
+  opacity:1;
+  filter:none;
+}
 #screen-difficulty .difficulty-card:after{
   content:"✓";
   position:absolute;
-  top:14px;
-  right:14px;
+  top:17px;
+  right:18px;
   z-index:4;
   display:grid;
-  width:28px;
-  height:28px;
-  border:1px solid #ffdc7c;
+  width:38px;
+  height:38px;
+  border:2px solid #fff1a3;
   border-radius:50%;
-  background:linear-gradient(180deg,#ffd86c,#bc7510);
-  color:#201300;
-  font-size:.9rem;
+  background:#3b2a08d9;
+  color:#fff6cf;
+  font-size:1.15rem;
   font-weight:900;
   place-items:center;
   opacity:0;
   transform:scale(.72);
   transition:opacity .18s ease,transform .18s ease;
-  box-shadow:0 0 18px #ffc44788;
+  box-shadow:0 0 0 3px #c9901d66,0 0 18px #ffc447aa;
+}
+#screen-difficulty .difficulty-card:hover,
+#screen-difficulty .difficulty-card:focus-visible{
+  transform:translateY(-4px);
+  box-shadow:0 22px 44px #000c,0 0 20px color-mix(in srgb,var(--card-color) 30%,transparent);
+}
+#screen-difficulty .difficulty-card.selected{
+  border-color:#ffe077!important;
+  transform:translateY(-3px);
+  box-shadow:0 0 0 2px #b9780c,0 0 24px #ffc447c4,0 22px 46px #000c;
 }
 #screen-difficulty .difficulty-card.selected:after{opacity:1;transform:scale(1)}
-#screen-difficulty .difficulty-card.selected{border-color:#ffd062!important}
+#screen-difficulty .difficulty-card .difficulty-gem{display:none}
+#screen-difficulty .difficulty-card h2,
+#screen-difficulty .difficulty-card h3,
+#screen-difficulty .difficulty-card ul{position:relative;z-index:2;grid-column:1;text-align:left}
+#screen-difficulty .difficulty-card h2{
+  margin:0;
+  color:#fff0c9;
+  font-size:clamp(1.18rem,1.8vw,1.62rem);
+  line-height:1.08;
+  text-shadow:0 3px 10px #000;
+}
+#screen-difficulty .difficulty-card h3{
+  margin:5px 0 13px;
+  color:var(--card-color);
+  font-size:clamp(.66rem,.9vw,.82rem);
+  line-height:1.1;
+  letter-spacing:.19em;
+}
+#screen-difficulty .difficulty-card ul{
+  display:grid;
+  gap:7px;
+  margin:0;
+  padding:0;
+  color:#ecf4fb;
+  font-size:clamp(.72rem,1vw,.88rem);
+  line-height:1.28;
+  text-shadow:0 2px 5px #000;
+}
+#screen-difficulty .difficulty-card li{padding:0;background:none;border:0}
+#screen-difficulty .difficulty-card li span{
+  display:inline-block;
+  width:28px;
+  color:var(--card-color);
+  text-align:center;
+  filter:drop-shadow(0 0 5px currentColor);
+}
+#screen-difficulty .difficulty-actions{margin-top:20px}
 #screen-difficulty .difficulty-actions .fantasy-button{
   min-width:310px;
-  border-radius:12px!important;
+  border-radius:15px!important;
+  background:linear-gradient(180deg,#ffdc78,#dda024);
   letter-spacing:.02em;
-  box-shadow:0 10px 24px #000a,0 0 26px #ffb62b4f,inset 0 1px #fff9;
+  box-shadow:0 10px 24px #000a,0 0 26px #ffb62b70,inset 0 1px #fff9;
 }
 
-@media(min-width:601px){
-  #screen-difficulty{min-height:700px;overflow:auto}
-  #screen-difficulty .difficulty-grid{
-    grid-template-columns:repeat(2,minmax(360px,1fr));
-    gap:18px;
-    width:min(1120px,100%);
-    max-width:1120px;
-  }
-  #screen-difficulty .difficulty-card{
-    position:relative;
-    isolation:isolate;
-    display:grid;
-    grid-template-columns:1fr;
-    grid-template-rows:auto auto 1fr;
-    min-height:238px;
-    padding:26px 28px 22px 47%;
-    border:1px solid color-mix(in srgb,var(--card-color) 74%,#a8d7ff);
-    border-radius:18px!important;
-    background:
-      linear-gradient(90deg,rgba(2,8,16,.08) 0 27%,rgba(3,10,20,.78) 43%,#050b16 61%),
-      linear-gradient(180deg,color-mix(in srgb,var(--card-color) 17%,transparent),#050b16 74%),
-      var(--difficulty-art) center/cover no-repeat;
-    text-align:left;
-    box-shadow:inset 0 1px 0 #ffffff20,inset 0 0 55px #0007,0 17px 36px #0009;
-  }
-  #screen-difficulty .difficulty-card:before{
-    content:"";
-    position:absolute;
-    inset:22px auto 22px 24px;
-    z-index:-1;
-    display:block;
-    width:36%;
-    height:auto;
-    border:1px solid color-mix(in srgb,var(--card-color) 44%,transparent);
-    border-radius:16px;
-    background:
-      radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--card-color) 42%,transparent),transparent 48%),
-      linear-gradient(180deg,#02081433,#020814b3);
-    opacity:1;
-    filter:none;
-    box-shadow:inset 0 0 28px #0007,0 0 24px color-mix(in srgb,var(--card-color) 18%,transparent);
-  }
-  #screen-difficulty .difficulty-card:hover,
-  #screen-difficulty .difficulty-card:focus-visible{
-    transform:translateY(-4px);
-    border-color:var(--card-color);
-    box-shadow:inset 0 1px 0 #ffffff26,inset 0 0 55px #0006,0 20px 42px #000b,0 0 24px color-mix(in srgb,var(--card-color) 28%,transparent);
-  }
-  #screen-difficulty .difficulty-card.selected{
-    transform:translateY(-3px);
-    box-shadow:inset 0 1px 0 #fff7,inset 0 0 52px #0005,0 0 0 2px #ffc44752,0 20px 44px #000b,0 0 30px color-mix(in srgb,var(--card-color) 38%,transparent);
-  }
-  #screen-difficulty .difficulty-card .difficulty-gem{
-    position:absolute;
-    top:50%;
-    left:5%;
-    z-index:2;
-    display:flex;
-    width:32%;
-    height:120px;
-    min-height:0;
-    margin:0;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    transform:translateY(-50%);
-    filter:drop-shadow(0 12px 12px #000b);
-  }
-  #screen-difficulty .difficulty-diamonds i{width:42px;height:42px;flex:0 1 42px}
-  #screen-difficulty .difficulty-diamonds i:nth-child(2){transform:rotate(45deg) translateY(-7px)}
-  #screen-difficulty .difficulty-crown svg{width:112px;height:88px}
-  #screen-difficulty .difficulty-card h2{
-    grid-column:1;
-    margin:0;
-    color:#fff2cc;
-    font-size:1.48rem;
-    line-height:1.15;
-    text-align:left;
-    text-shadow:0 3px 10px #000;
-  }
-  #screen-difficulty .difficulty-card h3{
-    grid-column:1;
-    margin:3px 0 10px;
-    color:var(--card-color);
-    font-size:.72rem;
-    line-height:1.2;
-    letter-spacing:.17em;
-    text-align:left;
-  }
-  #screen-difficulty .difficulty-card ul{
-    grid-column:1;
-    display:grid;
-    gap:5px;
-    margin:0;
-    padding:0;
-    color:#c1d2e1;
-    font-size:.79rem;
-    line-height:1.45;
-  }
-  #screen-difficulty .difficulty-card li{
-    padding:4px 8px;
-    border:1px solid #ffffff0f;
-    border-radius:7px;
-    background:#02081459;
-  }
-  #screen-difficulty .difficulty-card li span{width:24px;color:var(--card-color);text-align:center}
-  #screen-difficulty .difficulty-actions{margin-top:18px}
+@media(max-width:899px){
+  #screen-difficulty .difficulty-grid{grid-template-columns:1fr;width:min(650px,100%);gap:14px}
+  #screen-difficulty .difficulty-card{min-height:238px;padding-left:49%}
 }
 
 @media(max-width:600px){
+  #screen-difficulty{padding-inline:12px}
+  #screen-difficulty .screen-header{margin-bottom:14px}
+  #screen-difficulty .difficulty-grid{grid-template-columns:1fr;gap:11px}
   #screen-difficulty .difficulty-card{
-    isolation:isolate;
-    min-height:255px;
-    border-radius:14px!important;
-    background:
-      linear-gradient(180deg,rgba(2,8,16,.28),#050b16 39%,#050b16 100%),
-      var(--difficulty-art) top center/100% 46% no-repeat!important;
-    box-shadow:inset 0 1px #ffffff1c,0 10px 22px #0009;
+    aspect-ratio:auto;
+    min-height:190px;
+    padding:19px 16px 16px 48%;
+    border-radius:13px!important;
   }
-  #screen-difficulty .difficulty-card.selected{box-shadow:0 0 0 2px #ffc44752,0 12px 25px #000a,0 0 20px color-mix(in srgb,var(--card-color) 35%,transparent)}
-  #screen-difficulty .difficulty-card .difficulty-gem{filter:drop-shadow(0 7px 8px #000c)}
-  #screen-difficulty .difficulty-card h2{text-shadow:0 2px 7px #000}
-  #screen-difficulty .difficulty-card ul{width:100%;padding:7px!important;border-radius:8px;background:#0208148a}
-  #screen-difficulty .difficulty-card:after{top:8px;right:8px;width:23px;height:23px;font-size:.72rem}
+  #screen-difficulty .difficulty-card:before{background:linear-gradient(90deg,transparent 0 34%,rgba(2,7,14,.42) 47%,rgba(2,7,14,.78) 100%)}
+  #screen-difficulty .difficulty-card:after{top:10px;right:11px;width:28px;height:28px;font-size:.85rem}
+  #screen-difficulty .difficulty-card h2{font-size:1.02rem}
+  #screen-difficulty .difficulty-card h3{margin:3px 0 7px;font-size:.58rem}
+  #screen-difficulty .difficulty-card ul{gap:4px;font-size:.67rem;line-height:1.24}
+  #screen-difficulty .difficulty-card li span{width:20px}
+  #screen-difficulty .difficulty-actions{margin:13px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
   #screen-difficulty .difficulty-actions .fantasy-button{width:100%;min-width:0}
+}
+
+@media(max-width:360px){
+  #screen-difficulty .difficulty-card{min-height:176px;padding:16px 12px 13px 47%}
+  #screen-difficulty .difficulty-card h2{font-size:.93rem}
+  #screen-difficulty .difficulty-card ul{gap:3px;font-size:.61rem}
 }
