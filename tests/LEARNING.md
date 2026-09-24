@@ -8,6 +8,8 @@ Scope: requested learning, practice, mobile character/boss proportions, question
 
 Similar shapes are accepted with a small competing-template tolerance; stroke count and drawing order are not checked. This is **not a trained handwriting OCR model** and cannot promise universal accuracy. Connected letters, overlapping Thai marks, very cursive handwriting, punctuation and multi-line sentences may need rewriting with clearer spacing. Spaces are ignored. Uppercase/lowercase use the lesson alphabet. No handwritten data is uploaded by the recognizer.
 
+Borderline glyphs are retried with bounded rotation (±10°), shear and width adjustments against both the expected character and its strongest competitors. Nearby Thai vowel/tone variants are compared explicitly. Ambiguous readings do not immediately record a mistake. Pointer input follows one active pointer and includes coalesced movement samples when available; this prevents a second simultaneous touch from corrupting the active pen stroke, but is not full palm rejection.
+
 Local recognition fonts: Mali and Noto Sans Thai Looped, from the Google Fonts repository, distributed with their SIL OFL licenses in `assets/fonts/`. These do not replace the UI fonts.
 
 ## Lessons and sources
@@ -26,10 +28,12 @@ Uses the browser's Speech Synthesis voices for Thai and English. A compatible de
 
 ## Practice
 
-Thai/English letters and numbers have faint practice frames and optional guide shapes. Guided practice checks both coverage and proximity of ink to the template, and rejects substantial out-of-frame ink. Unguided practice uses the same shape classifier as battle. Arithmetic never displays an answer trace. Unlimited time is available; practice enemies remain stationary. Frames measure shape/placement, not linguistic stroke order.
+Thai/English letters and numbers have faint practice frames and optional guide shapes. Both guided and unguided practice now use the same character classifier as battle; tracing proximity alone neither grants a pass nor rejects a legible alternative style. Substantial out-of-frame ink is still rejected. Arithmetic never displays an answer trace. Unlimited time is available; enemies approach in practice without removing hearts. Frames measure placement, not linguistic stroke order.
 
 ## Regression checks
 
 Run `node tests/learning.test.cjs` with `@napi-rs/canvas` installed or available via `NODE_PATH`.
+
+Also run `node tests/handwriting-variation.test.cjs` for 126 tilted/sheared/narrow/wide fixtures, three independently drawn loop sizes and 48 wrong-answer controls. `node tests/browser-smoke.test.cjs` uses Playwright and Chrome against a running local server (`DRAW_HERO_TEST_URL`, default localhost:8765); it checks navigation and browser recognition at desktop, tablet and phone viewport sizes with isolated saves. Layout overflow is reported, not silently treated as a passing layout assertion.
 
 Checks include correct and incorrect text fixtures, an independently drawn curved “61”, all digit confusions, random scribble, blank/erased ink, responsive aspect ratio, uncertain-answer integration, lesson coverage/IDs and speech text/mute. These are synthetic regression fixtures, **not a measured accuracy rate on children's handwriting**. A full-content font survey logs ambiguous shapes for visibility; it must not mark legible fixtures incorrect.

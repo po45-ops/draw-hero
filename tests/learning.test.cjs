@@ -93,10 +93,28 @@ async function main(){
   const engine={running:true,paused:false,game:{difficulty:"easy"},stage:{recognitionThreshold:47},
     board:{hasDrawing:()=>true,exportRecognitionCanvas:()=>ink,strokes:[]},
     currentQuestion:()=>({recognitionMode:"raster",language:"number"}),currentCharacter:()=>"1",
-    correctAnswer(){throw Error("Unexpected reward");},wrongAnswer(){throw Error("Unexpected penalty");},message(){}};
+    correctAnswer(){throw Error("Unexpected reward");},wrongAnswer(){throw Error("Unexpected penalty");},message(){},showRecognitionFeedback(){}};
   DH.BattleEngine.prototype.cast.call(engine);
   engine.board.exportRecognitionCanvas=()=>textCanvas("11");
   DH.BattleEngine.prototype.cast.call(engine);
+  assert.equal(elements.get("accuracy-value").textContent,"—","Uncertain reading must not look like a zero accuracy verdict");
+  let practiceAccepted=0;
+  const practiceEngine={...engine,board:{...engine.board,practiceFrame:true,guide:"1",exportRecognitionCanvas:()=>textCanvas("1"),practiceFit:()=>({inside:1,coverage:.2,precision:.2})},
+    correctAnswer(){practiceAccepted++;},wrongAnswer(){}};
+  DH.BattleEngine.prototype.cast.call(practiceEngine);
+  assert.equal(practiceAccepted,1,"A valid letter inside the frame need not trace the example exactly");
+  practiceEngine.board.practiceFit=()=>({inside:.5,coverage:.9,precision:.9});
+  DH.BattleEngine.prototype.cast.call(practiceEngine);
+  assert.equal(practiceAccepted,1,"Practice must still enforce the writing frame");
+  practiceEngine.board.practiceFit=()=>({inside:1,coverage:.9,precision:.9});
+  practiceEngine.board.exportRecognitionCanvas=()=>textCanvas("2");
+  DH.BattleEngine.prototype.cast.call(practiceEngine);
+  assert.equal(practiceAccepted,1,"Proximity to a guide must not bypass the character check");
+  const inputCanvas=createCanvas(720,420);inputCanvas.addEventListener=()=>{};inputCanvas.setPointerCapture=()=>{};inputCanvas.getBoundingClientRect=()=>({left:0,top:0,width:720,height:420});
+  const board=new DH.DrawingBoard(inputCanvas),event=(id,x,y)=>({pointerId:id,pointerType:id===1?"pen":"touch",clientX:x,clientY:y,preventDefault(){}});
+  board.pointerDown(event(1,30,40));board.pointerDown(event(2,600,300));board.pointerMove(event(2,650,310));board.pointerUp(event(2,650,310));
+  const move=event(1,60,70);move.getCoalescedEvents=()=>[event(1,45,55),event(1,60,70)];board.pointerMove(move);board.pointerUp(event(1,60,70));
+  assert.equal(board.strokes.length,1);assert.equal(board.strokes[0].points.length,3);assert.equal(board.strokes[0].points[2].x,60,"A second touch must not overwrite or add a diagonal to the pen stroke");
   for(const [type,expected] of [["thai_letter",44],["english_letter",26],["number",100]]){
     const pool=DH.Content.byType(type),covered=new Set(DH.Levels.levels.flatMap(l=>l.questions));
     assert.equal(pool.length,expected);assert.ok(pool.every(q=>covered.has(q.id)),`Stage coverage for ${type}`);

@@ -99,6 +99,16 @@
     const aspect=Math.exp(-Math.abs(Math.log(a.aspect/b.aspect)));
     return Math.max(0,100*(.85*match+.15*aspect));
   }
+  function variations(part){
+    // Bounded style adjustments: never mirror a letter or change its stroke order.
+    return [[.8,0,0],[1.28,0,0],[1,-.24,0],[1,.24,0],[1,0,-10],[1,0,10]].map(([sx,shear,degrees])=>{
+      const scale=Math.min(1,192/Math.max(part.width,part.height)),width=part.width*scale,height=part.height*scale;
+      const side=Math.ceil((width+height)*1.5),out=canvas(side,side),ctx=out.getContext("2d");
+      ctx.translate(side/2,side/2);ctx.rotate(degrees*Math.PI/180);ctx.transform(sx,0,shear,1,0,0);
+      ctx.drawImage(part,-width/2,-height/2,width,height);
+      return normalize(out);
+    }).filter(Boolean);
+  }
   function render(text,font) {
     const c=canvas(220,240),ctx=c.getContext("2d");ctx.fillStyle="#000";ctx.font=`140px "${font}"`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,110,120);return c;
   }
@@ -135,7 +145,15 @@
     if(/^\d+$/.test(target))return Array.from("0123456789");
     if(language==="th"||/[\u0e00-\u0e7f]/u.test(target)){
       const pool=new Set(Array.from("กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮะาเแโใไๆฯ"));
-      units(target).forEach(u=>{pool.add(u);pool.add(u.replace(/[\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/gu,""));});return [...pool].filter(Boolean);
+      units(target).forEach(u=>{
+        pool.add(u);pool.add(u.replace(/[\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/gu,""));
+        // Compare nearby vowel/tone forms too; otherwise กี is only compared
+        // with กิ and bare consonants and can incorrectly win as กิ.
+        for(const group of ["ัิีึืุู","่้๊๋์็ํ"]){
+          const mark=Array.from(u).find(ch=>group.includes(ch));
+          if(mark)for(const replacement of ["",...group])pool.add(u.replace(mark,replacement));
+        }
+      });return [...pool].filter(Boolean);
     }
     const letters=/^[A-Z\s.,!?'-]+$/.test(target)?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":/^[a-z\s.,!?'-]+$/.test(target)?"abcdefghijklmnopqrstuvwxyz":"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     return [...new Set([...Array.from(letters+"0123456789.,!?'-"),...units(target)])];
@@ -144,12 +162,21 @@
     const results=parts.map((part,index)=>{
       const input=normalize(part);
       const scores=candidates.map(unit=>({unit,score:Math.max(...templates(unit).map(sample=>compare(input,sample)))})).sort((a,b)=>b.score-a.score);
-      const wanted=scores.find(s=>s.unit===expected[index]),best=scores[0],other=scores.find(s=>s.unit!==expected[index]);
+      const wanted=scores.find(s=>s.unit===expected[index]);
+      // Retry borderline shapes against the same competing alphabet. Lowering the
+      // pass threshold alone would also let genuinely different letters through.
+      if(wanted.score>=55&&(wanted.score<85||wanted.score-(scores.find(s=>s.unit!==expected[index])?.score||0)<8)){
+        const samples=variations(part),shortlist=scores.slice(0,10);
+        if(!shortlist.includes(wanted))shortlist.push(wanted);
+        shortlist.forEach(item=>{for(const sample of samples)for(const template of templates(item.unit))item.score=Math.max(item.score,compare(sample,template)-1);});
+        scores.sort((a,b)=>b.score-a.score);
+      }
+      const best=scores[0],other=scores.find(s=>s.unit!==expected[index]);
       const margin=wanted.score-(other?other.score:0);
       return {target:expected[index],recognized:best.unit,score:Math.round(wanted.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
     });
     const accepted=results.every(r=>r.score>=65&&r.margin>=-3);
-    const wrong=results.some(r=>r.target!==r.recognized&&r.bestScore>=80&&r.margin<=-9);
+    const wrong=results.some(r=>r.target!==r.recognized&&r.bestScore>=87&&r.margin<=-12);
     return {score:Math.round(results.reduce((sum,r)=>sum+r.score,0)/results.length),status:accepted?"correct":wrong?"incorrect":"uncertain",mode:"handwriting",details:{reason:accepted?"matched":wrong?"different_character":"ambiguous",units:results}};
   }
   function recoverJoinedThai(parts,expected,candidates){

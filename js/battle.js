@@ -119,8 +119,8 @@
       if(this.board.practiceFrame){
         const fit=this.board.practiceFit(),feedback=$("recognition-feedback");
         if(fit.inside<.94){feedback.textContent="เขียนให้อยู่ในกรอบจาง ๆ แล้วลองอีกครั้ง";feedback.className="recognition-feedback close";return;}
-        if(this.board.guide&&fit.coverage>=.6&&fit.precision>=.68){const score=Math.round((fit.coverage+fit.precision)*50);this.showRecognitionFeedback(score,60,true);this.correctAnswer(score);return;}
-        if(this.board.guide){feedback.textContent="ลองเติมเส้นให้คล้ายตัวอย่างและครบส่วน";feedback.className="recognition-feedback close";return;}
+        // The frame guides placement; every answer still uses the same character
+        // check, including legible handwriting that does not trace the font exactly.
       }
       const result=mode==="raster"?window.DrawHero.Handwriting.recognize(payload):window.DrawHero.Recognizer.recognize(payload);
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
