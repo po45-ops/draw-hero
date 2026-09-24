@@ -20,6 +20,19 @@ function recognize(c,target,language){return DH.Handwriting.recognize({canvas:c,
 async function main(){
   await DH.Handwriting.ready;
   await DH.Handwriting.prepare("100","number");await DH.Handwriting.prepare("A","en");await DH.Handwriting.prepare("ก่า","th");
+  await DH.Handwriting.prepare("กางเกง","th");
+  const trousers=recognize(textCanvas("กางเกง"),"กางเกง","th");
+  console.log("THAI WORD REGRESSION กางเกง",JSON.stringify(trousers));
+  assert.notEqual(trousers.status,"incorrect","Legible กางเกง must not be penalized");
+  const joinedWord=textCanvas("กางเกง"),joinedCtx=joinedWord.getContext("2d"),pixels=joinedCtx.getImageData(0,0,joinedWord.width,joinedWord.height).data;
+  const columns=[];for(let x=0;x<joinedWord.width;x++){let hasInk=false;for(let y=0;y<joinedWord.height;y++)if(pixels[(y*joinedWord.width+x)*4+3]>64){hasInk=true;break;}if(hasInk)columns.push(x);}
+  let gap=-1;for(let i=1;i<columns.length;i++)if(columns[i]-columns[i-1]>1){gap=i;break;}
+  assert.ok(gap>0,"Printed Thai word must have a gap for the joined-letter fixture");
+  joinedCtx.fillRect(columns[gap-1],170,columns[gap]-columns[gap-1]+1,3);
+  const joinedResult=recognize(joinedWord,"กางเกง","th");
+  console.log("JOINED THAI WORD",JSON.stringify(joinedResult));
+  assert.equal(joinedResult.status,"correct","A lightly joined กางเกง must be accepted");
+  assert.notEqual(recognize(joinedWord,"กางเขง","th").status,"correct","A similar wrong word must still be rejected");
   for(const q of DH.Content.questions.filter(q=>["thai_word","thai_phrase","thai_letter"].includes(q.type)))await DH.Handwriting.prepare(q.answer,q.language);
   let passed=0,uncertain=0;
   for(const target of ["1","6","61","100","A","B","ก","ข","กา","กบ","ขา","CAT","DOG","I GO TO SCHOOL"]){
@@ -102,7 +115,15 @@ async function main(){
   assert.equal(thaiLetters,"กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ");
   assert.equal(DH.Content.byType("english_lower").length,26);
   for(const q of DH.Content.questions.filter(q=>q.generated)){const [a,op,b,,c]=q.display.split(" "),x=b==="?"?Number(q.answer):Number(b),answer=c==="?"?Number(q.answer):Number(c);assert.equal(op==="+"?+a+x:op==="−"?+a-x:op==="×"?+a*x:+a/x,answer);}
-  const practice=DH.BattleEngine.prototype.prepareStage.call({game:{difficulty:"easy"}},{practice:true,timeLimit:0,enemySpeed:0});assert.equal(practice.timeLimit,0);assert.equal(practice.enemySpeed,0);
+  const practice=DH.BattleEngine.prototype.prepareStage.call({game:{difficulty:"easy"}},{practice:true,timeLimit:0,enemySpeed:0});assert.equal(practice.timeLimit,0);assert.ok(practice.enemySpeed>0,"Practice enemies must visibly approach even without Game Over");
+  const moving={running:true,paused:false,lastTime:1000,freezeUntil:0,impactUntil:0,slowUntil:0,questionTime:0,
+    stage:practice,enemies:[{distance:80,data:{speed:1,boss:false}}],positionEnemy(){},enemyReached(){throw Error("Enemy should not reach player instantly");},updateTimer(){}};
+  context.requestAnimationFrame=()=>1;
+  DH.BattleEngine.prototype.loop.call(moving,1016);
+  assert.ok(moving.enemies[0].distance<80,"Practice enemy position must advance each frame");
+  moving.paused=true;const pausedDistance=moving.enemies[0].distance;
+  DH.BattleEngine.prototype.loop.call(moving,1032);
+  assert.equal(moving.enemies[0].distance,pausedDistance,"Paused enemies must stay still");
   DH.Audio.readQuestion(DH.Content.byType("math_add")[0],null);
   assert.equal(context.spoken.text,"3  บวก  4  เท่ากับเท่าไร");
   DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null);

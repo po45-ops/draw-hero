@@ -28,7 +28,7 @@
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty]||window.DrawHero.Levels.difficulties.easy;
       const merged=Object.assign({},stage);
       merged.timeLimit=stage.practice?Number(stage.timeLimit):Number(stage.timeLimit)||difficulty.timeLimit;
-      merged.enemySpeed=stage.practice?0:(Number(stage.enemySpeed)||1)*difficulty.speed;
+      merged.enemySpeed=(Number(stage.enemySpeed)>0?Number(stage.enemySpeed):(stage.practice?0.85:1))*difficulty.speed;
       merged.recognitionThreshold=Number(stage.recognitionThreshold)||difficulty.threshold;
       merged.guideMode=stage.guideMode||difficulty.guideMode;
       merged.simultaneous=difficulty.simultaneous;
@@ -73,7 +73,7 @@
       const question=this.questions[(this.questionCursor+index)%this.questions.length];
       element.innerHTML=`<div class="enemy-trait" title="${this.escape(data.trait.label)}"><i>${data.trait.icon}</i><span>${this.escape(data.trait.label)}</span></div><div class="target-bubble">${this.escape(question.display)}</div><div class="model-sprite enemy-3d-sprite pose-run" style="--model-sheet:url('../${data.sprite3d}')" role="img" aria-label="${data.name}"></div><div class="enemy-hp"><i></i></div>`;
       $("enemy-layer").appendChild(element);
-      const enemy={data,element,hp:data.hp,maxHp:data.hp,shield:Number(data.shield)||0,distance:100+index*13,question};if(enemy.shield)element.classList.add("has-shield");this.enemies.push(enemy);this.positionEnemy(enemy);
+      const enemy={data,element,hp:data.hp,maxHp:data.hp,shield:Number(data.shield)||0,distance:80+index*4,question};if(enemy.shield)element.classList.add("has-shield");this.enemies.push(enemy);this.positionEnemy(enemy);
     }
     escape(value){const node=document.createElement("span");node.textContent=String(value);return node.innerHTML;}
     activeEnemy(){return this.enemies[0]||null;}
@@ -126,7 +126,7 @@
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
-      $("accuracy-fill").style.width=`${result.score}%`;$("accuracy-value").textContent=`${result.score}%`;
+      $("accuracy-fill").style.width=`${result.status==="uncertain"||result.status==="empty"?0:result.score}%`;$("accuracy-value").textContent=result.status==="uncertain"||result.status==="empty"?"—":`${result.score}%`;
       if(mode==="raster"){
         const feedback=$("recognition-feedback");
         if(result.status==="empty"){feedback.textContent="ยังไม่มีเส้นคำตอบบนกระดาน";feedback.className="recognition-feedback retry";return;}
@@ -213,7 +213,7 @@
         const slow=now<this.slowUntil ? .45 : 1;
         if(!frozen){
           if(this.questionTime>0)this.timeLeft=Math.max(0,this.timeLeft-delta);
-          this.enemies.slice().forEach(enemy=>{let phase=1;if(enemy.data.boss&&enemy.hp<enemy.maxHp*.5)phase=1.35;enemy.distance-=delta*2.25*this.stage.enemySpeed*enemy.data.speed*slow*phase;this.positionEnemy(enemy);if(enemy.distance<=8)this.enemyReached(enemy);});
+          this.enemies.slice().forEach(enemy=>{let phase=1;if(enemy.data.boss&&enemy.hp<enemy.maxHp*.5)phase=1.35;enemy.distance-=delta*3*this.stage.enemySpeed*Math.max(.8,enemy.data.speed||1)*slow*phase;this.positionEnemy(enemy);if(enemy.distance<=8)this.enemyReached(enemy);});
         }
         if(this.questionTime>0&&this.timeLeft<=0){this.wrong+=1;this.combo=0;this.timeLeft=this.questionTime;this.message("หมดเวลา — รีบวาดใหม่!");window.DrawHero.Audio.play("wrong");}
         this.updateTimer();

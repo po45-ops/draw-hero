@@ -41,6 +41,16 @@
       const part=canvas(right-left,b.h);part.getContext("2d").drawImage(c,left,b.y,right-left,b.h,0,0,right-left,b.h);return part;
     });
   }
+  function cropPart(part,left,right){
+    const width=right-left;if(width<5)return null;
+    const out=canvas(width,part.height);
+    out.getContext("2d").drawImage(part,left,0,width,part.height,0,0,width,part.height);
+    return out;
+  }
+  function joinParts(left,right){
+    const out=canvas(left.width+right.width,Math.max(left.height,right.height)),ctx=out.getContext("2d");
+    ctx.drawImage(left,0,0);ctx.drawImage(right,left.width,0);return out;
+  }
   function thin(input) {
     const a=input.slice();let changed=true,rounds=0;
     while(changed&&rounds++<64){changed=false;
@@ -130,13 +140,7 @@
     const letters=/^[A-Z\s.,!?'-]+$/.test(target)?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":/^[a-z\s.,!?'-]+$/.test(target)?"abcdefghijklmnopqrstuvwxyz":"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     return [...new Set([...Array.from(letters+"0123456789.,!?'-"),...units(target)])];
   }
-  function recognize(payload) {
-    if(!ready)return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};
-    const target=String(payload.target).trim(),expected=units(target),parts=segments(payload.canvas);
-    if(!parts.length)return {score:0,status:"empty",mode:"handwriting",details:{reason:"empty"}};
-    if(parts.length!==expected.length)return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"segmentation",expected:expected.length,found:parts.length}};
-    const candidates=alphabet(target,payload.options&&payload.options.language);
-    if(candidates.some(unit=>!cache.has(unit))){prepare(target,payload.options&&payload.options.language);return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};}
+  function classify(parts,expected,candidates){
     const results=parts.map((part,index)=>{
       const input=normalize(part);
       const scores=candidates.map(unit=>({unit,score:Math.max(...templates(unit).map(sample=>compare(input,sample)))})).sort((a,b)=>b.score-a.score);
@@ -144,10 +148,48 @@
       const margin=wanted.score-(other?other.score:0);
       return {target:expected[index],recognized:best.unit,score:Math.round(wanted.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
     });
-    // Accept similar handwriting, including a near-tie, but reject a clear alternative.
     const accepted=results.every(r=>r.score>=65&&r.margin>=-3);
     const wrong=results.some(r=>r.target!==r.recognized&&r.bestScore>=80&&r.margin<=-9);
     return {score:Math.round(results.reduce((sum,r)=>sum+r.score,0)/results.length),status:accepted?"correct":wrong?"incorrect":"uncertain",mode:"handwriting",details:{reason:accepted?"matched":wrong?"different_character":"ambiguous",units:results}};
+  }
+  function recoverJoinedThai(parts,expected,candidates){
+    if(Math.abs(parts.length-expected.length)!==1)return null;
+    const candidatesToTry=[];
+    if(parts.length<expected.length){
+      for(let i=0;i<parts.length;i++)for(const fraction of [.28,.36,.44,.5,.56,.64,.72]){
+        const cut=Math.round(parts[i].width*fraction),left=cropPart(parts[i],0,cut),right=cropPart(parts[i],cut,parts[i].width);
+        if(!left||!right)continue;
+        const a=normalize(left),b=normalize(right);
+        const first=Math.max(...templates(expected[i]).map(t=>compare(a,t)));
+        const second=Math.max(...templates(expected[i+1]).map(t=>compare(b,t)));
+        if(Math.min(first,second)>=62)candidatesToTry.push({score:Math.min(first,second),parts:[...parts.slice(0,i),left,right,...parts.slice(i+1)]});
+      }
+    }else for(let i=0;i<parts.length-1;i++){
+      const joined=joinParts(parts[i],parts[i+1]),input=normalize(joined);
+      const score=Math.max(...templates(expected[i]).map(t=>compare(input,t)));
+      if(score>=62)candidatesToTry.push({score,parts:[...parts.slice(0,i),joined,...parts.slice(i+2)]});
+    }
+    candidatesToTry.sort((a,b)=>b.score-a.score);
+    for(const candidate of candidatesToTry.slice(0,4)){
+      const result=classify(candidate.parts,expected,candidates);
+      if(result.status==="correct"){
+        result.details.reason="recovered_spacing";
+        return result;
+      }
+    }
+    return null;
+  }
+  function recognize(payload) {
+    if(!ready)return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};
+    const target=String(payload.target).trim(),expected=units(target),parts=segments(payload.canvas);
+    if(!parts.length)return {score:0,status:"empty",mode:"handwriting",details:{reason:"empty"}};
+    const candidates=alphabet(target,payload.options&&payload.options.language);
+    if(candidates.some(unit=>!cache.has(unit))){prepare(target,payload.options&&payload.options.language);return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};}
+    if(parts.length!==expected.length){
+      const recovered=/[ก-๛]/u.test(target)&&expected.length>=2?recoverJoinedThai(parts,expected,candidates):null;
+      return recovered||{score:0,status:"uncertain",mode:"handwriting",details:{reason:"segmentation",expected:expected.length,found:parts.length}};
+    }
+    return classify(parts,expected,candidates);
   }
   async function prepare(target,language){
     await readyPromise;if(!ready)return;
