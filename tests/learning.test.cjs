@@ -36,12 +36,14 @@ async function main(){
   for(const q of DH.Content.questions.filter(q=>["thai_word","thai_phrase","thai_letter"].includes(q.type)))await DH.Handwriting.prepare(q.answer,q.language);
   let passed=0,uncertain=0;
   for(const target of ["1","6","61","100","A","B","ก","ข","กา","กบ","ขา","CAT","DOG","I GO TO SCHOOL"]){
+    await DH.Handwriting.prepare(target,/[ก-ฮ]/.test(target)?"th":"en");
     const result=recognize(textCanvas(target),target,/[ก-ฮ]/.test(target)?"th":"en");
     console.log("CORRECT fixture",target,result.status,result.score,JSON.stringify(result.details));
     assert.notEqual(result.status,"incorrect",`Correct answer ${target} must not be marked wrong`);
     if(result.status==="correct")passed++;else uncertain++;
   }
   for(const [written,target] of [["A","B"],["C","G"],["6","9"],["16","61"],["1","100"],["CAT","CAR"],["DOG","CAT"],["ขา","กา"],["กา","ก่า"],["I GO TO SCHOOL","I GO TO BOOK"]]){
+    await DH.Handwriting.prepare(target,/[ก-ฮ]/.test(target)?"th":"en");
     const result=recognize(textCanvas(written),target,/[ก-ฮ]/.test(target)?"th":"en");
     console.log("WRONG fixture",written,"expected",target,result.status,result.score);
     assert.notEqual(result.status,"correct",`${written} must not pass as ${target}`);
@@ -98,6 +100,18 @@ async function main(){
   engine.board.exportRecognitionCanvas=()=>textCanvas("11");
   DH.BattleEngine.prototype.cast.call(engine);
   assert.equal(elements.get("accuracy-value").textContent,"—","Uncertain reading must not look like a zero accuracy verdict");
+  let englishAccepted=0,englishWrong=0;
+  const englishEngine={...engine,board:{...engine.board,exportRecognitionCanvas:()=>textCanvas("cAt")},
+    currentQuestion:()=>({recognitionMode:"raster",language:"en",type:"english_word"}),currentCharacter:()=>"CAT",
+    correctAnswer(){englishAccepted++;},wrongAnswer(){englishWrong++;}};
+  await DH.Handwriting.prepare("CAT","en",{caseInsensitive:true});
+  DH.BattleEngine.prototype.cast.call(englishEngine);assert.equal(englishAccepted,1,"Battle accepts mixed-case spelling");
+  englishEngine.board.exportRecognitionCanvas=()=>textCanvas("CAR");DH.BattleEngine.prototype.cast.call(englishEngine);
+  assert.equal(englishAccepted,1);assert.equal(englishWrong,1);assert.match(elements.get("recognition-feedback").textContent,/ตัวที่ 3/);
+  englishEngine.board.exportRecognitionCanvas=()=>textCanvas("CA");DH.BattleEngine.prototype.cast.call(englishEngine);
+  assert.equal(englishWrong,1,"Uncertain segmentation must not count as an incorrect spelling");
+  for(const type of ["english_letter","english_lower"])assert.equal(DH.BattleEngine.prototype.acceptsEnglishCase({language:"en",type}),false);
+  assert.equal(DH.BattleEngine.prototype.acceptsEnglishCase({language:"en",type:"english_phrase"}),true);
   let practiceAccepted=0;
   const practiceEngine={...engine,board:{...engine.board,practiceFrame:true,guide:"1",exportRecognitionCanvas:()=>textCanvas("1"),practiceFit:()=>({inside:1,coverage:.2,precision:.2})},
     correctAnswer(){practiceAccepted++;},wrongAnswer(){}};

@@ -51,6 +51,41 @@
     const out=canvas(left.width+right.width,Math.max(left.height,right.height)),ctx=out.getContext("2d");
     ctx.drawImage(left,0,0);ctx.drawImage(right,left.width,0);return out;
   }
+  function englishParts(c){
+    // Disjoint letters can overlap in X (e.g. a long T bar above A).
+    // Find actual ink components before relying on empty vertical columns.
+    const scale=Math.min(1,1000/c.width,400/c.height),small=canvas(Math.ceil(c.width*scale),Math.ceil(c.height*scale));
+    small.getContext("2d").drawImage(c,0,0,small.width,small.height);
+    const b=bounds(small);if(!b)return [];
+    const w=small.width,h=small.height,seen=new Uint8Array(w*h),components=[];
+    for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){
+      const start=y*w+x;if(seen[start]||b.data[start*4+3]<=64)continue;
+      const queue=[start],points=[];seen[start]=1;let x0=x,x1=x,y0=y,y1=y;
+      for(let k=0;k<queue.length;k++){
+        const i=queue[k],xx=i%w,yy=Math.floor(i/w);points.push(i);x0=Math.min(x0,xx);x1=Math.max(x1,xx);y0=Math.min(y0,yy);y1=Math.max(y1,yy);
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+          const nx=xx+dx,ny=yy+dy,j=ny*w+nx;
+          if(nx<0||nx>=w||ny<0||ny>=h||seen[j]||b.data[j*4+3]<=64)continue;
+          seen[j]=1;queue.push(j);
+        }
+      }
+      components.push({x0,x1,y0,y1,points});
+    }
+    // Attach dots and detached crossbars to an overlapping stem, but never
+    // collapse two full-height letters merely because their columns overlap.
+    const major=components.filter(p=>p.y1-p.y0>=b.h*.36),minor=components.filter(p=>p.y1-p.y0<b.h*.36);
+    for(const p of minor){
+      const center=(p.x0+p.x1)/2;
+      const matches=major.filter(q=>Math.min(p.x1,q.x1)-Math.max(p.x0,q.x0)>=-2).sort((a,z)=>Math.abs(center-(a.x0+a.x1)/2)-Math.abs(center-(z.x0+z.x1)/2));
+      const q=matches[0];
+      if(q){q.points.push(...p.points);q.x0=Math.min(q.x0,p.x0);q.x1=Math.max(q.x1,p.x1);q.y0=Math.min(q.y0,p.y0);q.y1=Math.max(q.y1,p.y1);}else major.push(p);
+    }
+    return major.sort((a,z)=>(a.x0+a.x1)-(z.x0+z.x1)).map(p=>{
+      const out=canvas(p.x1-p.x0+1,p.y1-p.y0+1),ctx=out.getContext("2d"),pixels=ctx.createImageData(out.width,out.height);
+      for(const i of p.points)pixels.data[((Math.floor(i/w)-p.y0)*out.width+i%w-p.x0)*4+3]=255;
+      ctx.putImageData(pixels,0,0);return out;
+    });
+  }
   function thin(input) {
     const a=input.slice();let changed=true,rounds=0;
     while(changed&&rounds++<64){changed=false;
@@ -129,6 +164,12 @@
     "1":[[[[35,22],[50,5],[50,96]]],[[[40,16],[52,5],[52,96],[38,96],[66,96]]]],
     "6":[[[[40,5],[29,30],[25,52],[27,74],[38,92],[59,96],[77,83],[80,67],[70,55],[51,52],[35,61],[27,77]]]]
   };
+  const letterPaths={
+    A:[[[12,95],[24,34],[35,8],[43,5],[52,13],[65,95]],[[10,62],[70,62]]],
+    T:[[[8,12],[87,7]],[[39,6],[49,96]]],
+    a:[[[67,28],[47,19],[24,27],[13,50],[18,76],[37,88],[58,81],[68,60],[67,28],[70,91]]],
+    g:[[[68,22],[44,15],[22,28],[16,48],[27,65],[49,66],[67,47],[68,22],[70,81],[58,97],[34,98],[19,89]]]
+  };
   function templates(unit) {
     if(cache.has(unit))return cache.get(unit);
     const values=fonts.map(font=>normalize(render(unit,font))).filter(Boolean);
@@ -138,10 +179,17 @@
         paths.forEach(path=>{ctx.beginPath();path.forEach(([x,y],i)=>i?ctx.lineTo(x+10,y+10):ctx.moveTo(x+10,y+10));ctx.stroke();});values.push(normalize(c));
       }
     }
+    if(letterPaths[unit]){
+      const c=canvas(110,120),ctx=c.getContext("2d");ctx.lineWidth=6;ctx.lineCap="round";ctx.lineJoin="round";
+      letterPaths[unit].forEach(path=>{ctx.beginPath();path.forEach(([x,y],i)=>i?ctx.lineTo(x+10,y+10):ctx.moveTo(x+10,y+10));ctx.stroke();});values.push(normalize(c));
+    }
     // Bound memory for user-created content.
     if(cache.size>1500)cache.clear();cache.set(unit,values);return values;
   }
-  function alphabet(target,language) {
+  function ignoresCase(target,options={}){
+    return options.caseInsensitive===true||(options.caseInsensitive!==false&&/^[A-Za-z\s.,!?'-]+$/.test(target)&&units(target).length>1);
+  }
+  function alphabet(target,language,caseInsensitive=false) {
     if(/^\d+$/.test(target))return Array.from("0123456789");
     if(language==="th"||/[\u0e00-\u0e7f]/u.test(target)){
       const pool=new Set(Array.from("กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮะาเแโใไๆฯ"));
@@ -155,28 +203,29 @@
         }
       });return [...pool].filter(Boolean);
     }
-    const letters=/^[A-Z\s.,!?'-]+$/.test(target)?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":/^[a-z\s.,!?'-]+$/.test(target)?"abcdefghijklmnopqrstuvwxyz":"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const letters=caseInsensitive?"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":/^[A-Z\s.,!?'-]+$/.test(target)?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":/^[a-z\s.,!?'-]+$/.test(target)?"abcdefghijklmnopqrstuvwxyz":"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     return [...new Set([...Array.from(letters+"0123456789.,!?'-"),...units(target)])];
   }
-  function classify(parts,expected,candidates){
+  function classify(parts,expected,candidates,caseInsensitive=false){
+    const key=unit=>caseInsensitive?unit.toLowerCase():unit;
     const results=parts.map((part,index)=>{
       const input=normalize(part);
       const scores=candidates.map(unit=>({unit,score:Math.max(...templates(unit).map(sample=>compare(input,sample)))})).sort((a,b)=>b.score-a.score);
-      const wanted=scores.find(s=>s.unit===expected[index]);
+      const wanted=scores.find(s=>key(s.unit)===key(expected[index]));
       // Retry borderline shapes against the same competing alphabet. Lowering the
       // pass threshold alone would also let genuinely different letters through.
-      if(wanted.score>=55&&(wanted.score<85||wanted.score-(scores.find(s=>s.unit!==expected[index])?.score||0)<8)){
+      if(wanted.score>=55&&(wanted.score<85||wanted.score-(scores.find(s=>key(s.unit)!==key(expected[index]))?.score||0)<8)){
         const samples=variations(part),shortlist=scores.slice(0,10);
         if(!shortlist.includes(wanted))shortlist.push(wanted);
         shortlist.forEach(item=>{for(const sample of samples)for(const template of templates(item.unit))item.score=Math.max(item.score,compare(sample,template)-1);});
         scores.sort((a,b)=>b.score-a.score);
       }
-      const best=scores[0],other=scores.find(s=>s.unit!==expected[index]);
-      const margin=wanted.score-(other?other.score:0);
-      return {target:expected[index],recognized:best.unit,score:Math.round(wanted.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
+      const best=scores[0],matched=scores.find(s=>key(s.unit)===key(expected[index])),other=scores.find(s=>key(s.unit)!==key(expected[index]));
+      const margin=matched.score-(other?other.score:0);
+      return {target:expected[index],recognized:best.unit,score:Math.round(matched.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
     });
     const accepted=results.every(r=>r.score>=65&&r.margin>=-3);
-    const wrong=results.some(r=>r.target!==r.recognized&&r.bestScore>=87&&r.margin<=-12);
+    const wrong=results.some(r=>key(r.target)!==key(r.recognized)&&r.bestScore>=87&&r.margin<=-12);
     return {score:Math.round(results.reduce((sum,r)=>sum+r.score,0)/results.length),status:accepted?"correct":wrong?"incorrect":"uncertain",mode:"handwriting",details:{reason:accepted?"matched":wrong?"different_character":"ambiguous",units:results}};
   }
   function recoverJoinedThai(parts,expected,candidates){
@@ -210,17 +259,24 @@
     if(!ready)return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};
     const target=String(payload.target).trim(),expected=units(target),parts=segments(payload.canvas);
     if(!parts.length)return {score:0,status:"empty",mode:"handwriting",details:{reason:"empty"}};
-    const candidates=alphabet(target,payload.options&&payload.options.language);
-    if(candidates.some(unit=>!cache.has(unit))){prepare(target,payload.options&&payload.options.language);return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};}
+    const options=payload.options||{},caseInsensitive=ignoresCase(target,options),english=/^[A-Za-z\s]+$/.test(target);
+    const candidates=alphabet(target,options.language,caseInsensitive);
+    if(candidates.some(unit=>!cache.has(unit))){prepare(target,options.language,options);return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"loading"}};}
+    if(english){
+      const components=englishParts(payload.canvas);
+      if(components.length===expected.length)return classify(components,expected,candidates,caseInsensitive);
+      // Never merge an extra whole letter to manufacture the expected spelling.
+      if(components.length>expected.length)return {score:0,status:"uncertain",mode:"handwriting",details:{reason:"segmentation",expected:expected.length,found:components.length}};
+    }
     if(parts.length!==expected.length){
       const recovered=/[ก-๛]/u.test(target)&&expected.length>=2?recoverJoinedThai(parts,expected,candidates):null;
       return recovered||{score:0,status:"uncertain",mode:"handwriting",details:{reason:"segmentation",expected:expected.length,found:parts.length}};
     }
-    return classify(parts,expected,candidates);
+    return classify(parts,expected,candidates,caseInsensitive);
   }
-  async function prepare(target,language){
+  async function prepare(target,language,options={}){
     await readyPromise;if(!ready)return;
-    const candidates=alphabet(String(target),language);
+    const candidates=alphabet(String(target),language,ignoresCase(String(target),options));
     for(const unit of candidates){
       if(cache.has(unit))continue;
       if(preparing.has(unit)){await new Promise(resolve=>setTimeout(resolve,8));continue;}

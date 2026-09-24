@@ -41,9 +41,13 @@ async function main(){
         const canvas=document.createElement('canvas');canvas.width=900;canvas.height=300;
         const pen=canvas.getContext('2d');pen.translate(70,150);pen.rotate(-.12);pen.font='100px "DH Handwriting"';pen.fillText('กางเกง',0,0);
         const start=performance.now(),result=DrawHero.Handwriting.recognize({canvas,target:'กางเกง',options:{language:'th'}});
-        return {status:result.status,milliseconds:Math.round(performance.now()-start)};
+        const milliseconds=Math.round(performance.now()-start);
+        await DrawHero.Handwriting.prepare('CAT','en',{caseInsensitive:true});
+        pen.resetTransform();pen.clearRect(0,0,900,300);pen.font='100px "DH Handwriting"';pen.fillText('cAt',80,150);
+        const english=DrawHero.Handwriting.recognize({canvas,target:'CAT',options:{language:'en',caseInsensitive:true}});
+        return {status:result.status,milliseconds,english:english.status};
       });
-      assert.equal(reading.status,'correct');assert.deepEqual(errors,[]);
+      assert.equal(reading.status,'correct');assert.equal(reading.english,'correct');assert.deepEqual(errors,[]);
       console.log(JSON.stringify({viewport,layouts,reading,errors}));await context.close();
     }
   }finally{await browser.close();}

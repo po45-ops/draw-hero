@@ -88,7 +88,9 @@
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
       const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
       this.renderSlots();this.applyGuide();this.updateEnemyBubbles();this.updateHud();
-      window.DrawHero.Handwriting.prepare(this.currentCharacter(),q.language).then(()=>{if(this.board&&this.currentQuestion()===q)this.board.redraw();});
+      const caseInsensitive=this.acceptsEnglishCase(q);
+      if(q.language==="en")$("target-hint").textContent=caseInsensitive?"เขียนได้ทั้งพิมพ์ใหญ่และพิมพ์เล็ก แล้วร่ายเวทครั้งเดียว":q.type==="english_lower"?"ฝึกเขียนตัวพิมพ์เล็กตามโจทย์":"ฝึกเขียนตัวพิมพ์ใหญ่ตามโจทย์";
+      window.DrawHero.Handwriting.prepare(this.currentCharacter(),q.language,{caseInsensitive}).then(()=>{if(this.board&&this.currentQuestion()===q)this.board.redraw();});
       $("accuracy-fill").style.width="0%";$("accuracy-value").textContent="—";
       $("recognition-feedback").className="recognition-feedback";
       $("recognition-feedback").textContent="เขียนคำตอบให้ครบ แล้วกดร่ายเวท";
@@ -111,11 +113,12 @@
       this.board.setGuide(guided?this.currentCharacter():"",guided?this.stage.guideMode:"none");
     }
     updateEnemyBubbles(){this.enemies.forEach((enemy,index)=>{const q=index===0?this.currentQuestion():enemy.question;const bubble=enemy.element.querySelector(".target-bubble");if(bubble)bubble.textContent=q.display;});}
+    acceptsEnglishCase(question){return question.language==="en"&&!["english_letter","english_lower"].includes(question.type);}
     cast(){
       if(!this.running||this.paused||!this.board||!this.board.hasDrawing()){this.message("วาดคำตอบก่อนนะ!","warn");return;}
       const question=this.currentQuestion(),target=this.currentCharacter();
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
-      const payload={mode,strokes:this.board.strokes,canvas:this.board.exportRecognitionCanvas(),target,options:{language:question.language}};
+      const payload={mode,strokes:this.board.strokes,canvas:this.board.exportRecognitionCanvas(),target,options:{language:question.language,caseInsensitive:window.DrawHero.BattleEngine.prototype.acceptsEnglishCase(question)}};
       if(this.board.practiceFrame){
         const fit=this.board.practiceFit(),feedback=$("recognition-feedback");
         if(fit.inside<.94){feedback.textContent="เขียนให้อยู่ในกรอบจาง ๆ แล้วลองอีกครั้ง";feedback.className="recognition-feedback close";return;}
@@ -132,12 +135,14 @@
         if(result.status==="empty"){feedback.textContent="ยังไม่มีเส้นคำตอบบนกระดาน";feedback.className="recognition-feedback retry";return;}
         if(result.status==="uncertain"){
           const reason=result.details.reason;
-          feedback.textContent=reason==="loading"?"กำลังเตรียมตัวอักษร…":reason==="segmentation"?"เขียนให้ครบ เว้นตัวเล็กน้อย • ไม่นับผิด":"ลองปรับรูปทรงอีกนิด • ไม่นับผิด";
+          const unclear=result.details.units?.findIndex(unit=>unit.score<65||unit.margin<-3);
+          feedback.textContent=reason==="loading"?"กำลังเตรียมตัวอักษร…":question.language==="en"?(unclear>=0?`ยังอ่านตัวที่ ${unclear+1} (${result.details.units[unclear].target}) ไม่ชัด • แก้เฉพาะตัวนี้ได้ • ไม่นับผิด`:"ยังแยกตัวอักษรไม่ชัด • ตรวจช่องไฟ/ตัวที่ขาดหรือเกิน • ไม่นับผิด"):reason==="segmentation"?"เขียนให้ครบ เว้นตัวเล็กน้อย • ไม่นับผิด":"ลองปรับรูปทรงอีกนิด • ไม่นับผิด";
           feedback.className="recognition-feedback close";
           window.DrawHero.Audio.play("retry");return;
         }
         if(result.status==="incorrect"){
-          feedback.textContent="ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
+          const mismatch=result.details.units?.findIndex(unit=>unit.margin<=-12&&unit.bestScore>=87);
+          feedback.textContent=question.language==="en"&&mismatch>=0?`ตรวจตัวที่ ${mismatch+1} (${result.details.units[mismatch].target}) อีกครั้ง • แก้เฉพาะตัวนี้ได้`:"ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
           this.wrongAnswer(result.score);return;
         }
         this.showRecognitionFeedback(result.score,65,true);this.correctAnswer(result.score);return;
