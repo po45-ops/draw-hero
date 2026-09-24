@@ -112,6 +112,22 @@ async function main(){
   assert.equal(englishWrong,1,"Uncertain segmentation must not count as an incorrect spelling");
   for(const type of ["english_letter","english_lower"])assert.equal(DH.BattleEngine.prototype.acceptsEnglishCase({language:"en",type}),false);
   assert.equal(DH.BattleEngine.prototype.acceptsEnglishCase({language:"en",type:"english_phrase"}),true);
+  const grace={readingBudget:6,readingGrace:0};
+  assert.equal(DH.BattleEngine.prototype.grantReadingGrace.call(grace),true);assert.equal(grace.readingGrace,3);assert.equal(grace.readingBudget,3);
+  for(let i=0;i<20;i++)assert.equal(DH.BattleEngine.prototype.grantReadingGrace.call(grace),false);
+  grace.readingGrace=0;assert.equal(DH.BattleEngine.prototype.grantReadingGrace.call(grace),true);assert.equal(grace.readingBudget,0);
+  grace.readingGrace=0;assert.equal(DH.BattleEngine.prototype.grantReadingGrace.call(grace),false);
+  const originalRecognize=DH.Handwriting.recognize;
+  try{
+    DH.Handwriting.recognize=()=>({status:"uncertain",score:60,details:{reason:"ambiguous",units:[{target:"7",score:60,margin:-5}]}});
+    const mathEngine={...engine,readingBudget:6,readingGrace:0,currentQuestion:()=>({language:"number",type:"math_add"}),currentCharacter:()=>"7"};
+    const existingInk=mathEngine.board.strokes;DH.BattleEngine.prototype.cast.call(mathEngine);
+    assert.equal(mathEngine.board.strokes,existingInk,"An uncertain reading keeps existing ink");assert.equal(mathEngine.readingGrace,3);
+    assert.ok(!elements.get("recognition-feedback").textContent.includes("7"),"Math feedback must not expose the expected answer");
+    DH.Handwriting.recognize=()=>({status:"uncertain",score:60,details:{reason:"ambiguous",units:[{target:"ก",score:90,margin:10},{target:"ร",score:60,margin:-5}]}});
+    const thaiEngine={...engine,currentQuestion:()=>({language:"th",type:"thai_word"}),currentCharacter:()=>"กระจก"};DH.BattleEngine.prototype.cast.call(thaiEngine);
+    assert.match(elements.get("recognition-feedback").textContent,/ตัวที่ 2 \(ร\)/);
+  }finally{DH.Handwriting.recognize=originalRecognize;}
   let practiceAccepted=0;
   const practiceEngine={...engine,board:{...engine.board,practiceFrame:true,guide:"1",exportRecognitionCanvas:()=>textCanvas("1"),practiceFit:()=>({inside:1,coverage:.2,precision:.2})},
     correctAnswer(){practiceAccepted++;},wrongAnswer(){}};
@@ -156,6 +172,11 @@ async function main(){
   moving.paused=true;const pausedDistance=moving.enemies[0].distance;
   DH.BattleEngine.prototype.loop.call(moving,1032);
   assert.equal(moving.enemies[0].distance,pausedDistance,"Paused enemies must stay still");
+  moving.paused=false;moving.readingGrace=3;moving.questionTime=10;moving.timeLeft=5;
+  DH.BattleEngine.prototype.loop.call(moving,1048);
+  assert.equal(moving.timeLeft,5);assert.equal(moving.enemies[0].distance,pausedDistance);assert.ok(moving.readingGrace<3);
+  const remaining=moving.readingGrace;moving.paused=true;DH.BattleEngine.prototype.loop.call(moving,1064);assert.equal(moving.readingGrace,remaining);
+  moving.paused=false;moving.readingGrace=0;DH.BattleEngine.prototype.loop.call(moving,1080);assert.ok(moving.timeLeft<5);assert.ok(moving.enemies[0].distance<pausedDistance);
   DH.Audio.readQuestion(DH.Content.byType("math_add")[0],null);
   assert.equal(context.spoken.text,"3  บวก  4  เท่ากับเท่าไร");
   DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null);

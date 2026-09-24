@@ -29,6 +29,11 @@ async function main(){
       await page.locator('#confirm-difficulty').click();await check('map');
       await page.locator('.world-node button').first().click();
       await page.locator('.stage-card').first().click();await check('battle');
+      const grace=await page.evaluate(()=>{
+        const b=auditBattle;b.readingBudget=0;b.readingGrace=0;b.setQuestion();
+        const same=b.readingBudget;b.questionCursor++;b.setQuestion();
+        return {same,next:b.readingBudget};
+      });assert.deepEqual(grace,{same:0,next:6},'Only a new question replenishes retry protection');
       await page.locator('#pause-button').click();await page.locator('#back-to-stages-button').click();
       await check('map');assert.ok(await page.locator('.stage-card:visible').count());
       await page.locator('.stage-card').first().click();

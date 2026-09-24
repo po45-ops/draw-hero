@@ -41,6 +41,7 @@
       this.questionCursor=0;this.slotIndex=0;this.enemies=[];this.mastery=this.game.characterMastery(this.game.characterId);this.hp=(window.DrawHero.Characters.get(this.game.characterId).hp||3)+(this.mastery.level>=3?1:0);
       this.score=0;this.combo=0;this.bestCombo=0;this.correct=0;this.wrong=0;this.accuracyTotal=0;this.skillGauge=0;this.completedQuestions=0;
       this.startTime=performance.now();this.slowUntil=0;this.freezeUntil=0;this.impactUntil=0;this.hintUsed=false;
+      this.readingQuestionKey=null;this.readingGrace=0;this.readingBudget=0;this.recognizing=false;
       this.renderPlayer();this.updateHud();this.initBoard();this.spawnEnemies();this.setQuestion();
       this.running=true;this.paused=false;this.lastTime=performance.now();this.raf=requestAnimationFrame(this.boundLoop);
       window.DrawHero.Audio.play("click");
@@ -84,6 +85,8 @@
     categoryFor(question){if(question.type.startsWith("math_"))return"math";if(question.type.includes("phrase"))return"phrase";if(question.type.includes("word")||question.type.endsWith("_basic"))return"word";if(question.type==="english_lower")return"english_letter";return question.type;}
     setQuestion(){
       const q=this.currentQuestion();if(!q)return;
+      const readingKey=`${this.questionCursor}:${q.id||this.questions.indexOf(q)}`;
+      if(this.readingQuestionKey!==readingKey){this.readingQuestionKey=readingKey;this.readingBudget=6;this.readingGrace=0;}
       this.slotIndex=0;this.questionTime=this.stage.practice?this.stage.timeLimit:Number(q.timeLimit)||this.stage.timeLimit;this.timeLeft=this.questionTime;
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
       const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
@@ -114,7 +117,12 @@
     }
     updateEnemyBubbles(){this.enemies.forEach((enemy,index)=>{const q=index===0?this.currentQuestion():enemy.question;const bubble=enemy.element.querySelector(".target-bubble");if(bubble)bubble.textContent=q.display;});}
     acceptsEnglishCase(question){return question.language==="en"&&!["english_letter","english_lower"].includes(question.type);}
+    grantReadingGrace(){
+      if((this.readingGrace||0)>0||!(this.readingBudget>0))return false;
+      const seconds=Math.min(3,this.readingBudget);this.readingBudget-=seconds;this.readingGrace=seconds;return true;
+    }
     cast(){
+      if(this.recognizing)return;
       if(!this.running||this.paused||!this.board||!this.board.hasDrawing()){this.message("วาดคำตอบก่อนนะ!","warn");return;}
       const question=this.currentQuestion(),target=this.currentCharacter();
       const mode=(question.recognitionMode||this.stage.contentType)==="geometry"?"geometry":"raster";
@@ -125,7 +133,9 @@
         // The frame guides placement; every answer still uses the same character
         // check, including legible handwriting that does not trace the font exactly.
       }
-      const result=mode==="raster"?window.DrawHero.Handwriting.recognize(payload):window.DrawHero.Recognizer.recognize(payload);
+      let result;this.recognizing=true;
+      try{result=mode==="raster"?window.DrawHero.Handwriting.recognize(payload):window.DrawHero.Recognizer.recognize(payload);}
+      finally{this.recognizing=false;this.lastTime=performance.now();}
       const difficulty=window.DrawHero.Levels.difficulties[this.game.difficulty];
       let threshold=Number(question.threshold)||Number(this.stage.recognitionThreshold)||difficulty.threshold;
       if(this.game.difficulty==="easy")threshold=Math.min(threshold,48);
@@ -135,14 +145,17 @@
         if(result.status==="empty"){feedback.textContent="ยังไม่มีเส้นคำตอบบนกระดาน";feedback.className="recognition-feedback retry";return;}
         if(result.status==="uncertain"){
           const reason=result.details.reason;
-          const unclear=result.details.units?.findIndex(unit=>unit.score<65||unit.margin<-3);
-          feedback.textContent=reason==="loading"?"กำลังเตรียมตัวอักษร…":question.language==="en"?(unclear>=0?`ยังอ่านตัวที่ ${unclear+1} (${result.details.units[unclear].target}) ไม่ชัด • แก้เฉพาะตัวนี้ได้ • ไม่นับผิด`:"ยังแยกตัวอักษรไม่ชัด • ตรวจช่องไฟ/ตัวที่ขาดหรือเกิน • ไม่นับผิด"):reason==="segmentation"?"เขียนให้ครบ เว้นตัวเล็กน้อย • ไม่นับผิด":"ลองปรับรูปทรงอีกนิด • ไม่นับผิด";
+          const unclear=result.details.units?.findIndex(unit=>unit.score<65||unit.margin<-3||unit.ambiguousPair);
+          const targetLabel=unclear>=0&&!question.type?.startsWith("math_")?` (${result.details.units[unclear].target})`:"";
+          feedback.textContent=reason==="loading"?"กำลังเตรียมตัวอักษร…":unclear>=0?`ยังอ่านตัวที่ ${unclear+1}${targetLabel} ไม่ชัด • แก้เฉพาะตัวนี้ได้ • ไม่นับผิด`:reason==="segmentation"?"ยังแยกตัวอักษรไม่ชัด • ตรวจช่องไฟ/ตัวที่ขาดหรือเกิน • ไม่นับผิด":"ลองปรับรูปทรงอีกนิด • ไม่นับผิด";
+          if(window.DrawHero.BattleEngine.prototype.grantReadingGrace.call(this))this.message("พักเวลาและศัตรู 3 วินาทีให้แก้ลายมือ");
           feedback.className="recognition-feedback close";
           window.DrawHero.Audio.play("retry");return;
         }
         if(result.status==="incorrect"){
           const mismatch=result.details.units?.findIndex(unit=>unit.margin<=-12&&unit.bestScore>=87);
-          feedback.textContent=question.language==="en"&&mismatch>=0?`ตรวจตัวที่ ${mismatch+1} (${result.details.units[mismatch].target}) อีกครั้ง • แก้เฉพาะตัวนี้ได้`:"ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
+          const targetLabel=mismatch>=0&&!question.type?.startsWith("math_")?` (${result.details.units[mismatch].target})`:"";
+          feedback.textContent=mismatch>=0?`ตรวจตัวที่ ${mismatch+1}${targetLabel} อีกครั้ง • แก้เฉพาะตัวนี้ได้`:"ตรวจพบตัวอักษรต่างจากโจทย์ ลองตรวจทีละตัวอีกครั้ง";feedback.className="recognition-feedback retry";
           this.wrongAnswer(result.score);return;
         }
         this.showRecognitionFeedback(result.score,65,true);this.correctAnswer(result.score);return;
@@ -152,6 +165,7 @@
       if(result.score>=threshold)this.correctAnswer(result.score);else this.wrongAnswer(result.score);
     }
     correctAnswer(accuracy){
+      this.readingGrace=0;
       this.correct+=1;this.combo+=1;this.bestCombo=Math.max(this.bestCombo,this.combo);this.accuracyTotal+=accuracy;
       this.skillGauge=Math.min(100,this.skillGauge+(this.mastery.level>=2?26:22));this.board.clear();
       const units=this.answerUnits(this.currentQuestion());
@@ -214,13 +228,15 @@
     loop(now){
       if(!this.running)return;const delta=Math.min(.05,(now-this.lastTime)/1000||0);this.lastTime=now;
       if(!this.paused){
-        const frozen=now<this.freezeUntil||now<this.impactUntil;
+        const readingProtected=this.recognizing||(this.readingGrace||0)>0;
+        this.readingGrace=Math.max(0,(this.readingGrace||0)-delta);
+        const frozen=now<this.freezeUntil||now<this.impactUntil||readingProtected;
         const slow=now<this.slowUntil ? .45 : 1;
         if(!frozen){
           if(this.questionTime>0)this.timeLeft=Math.max(0,this.timeLeft-delta);
           this.enemies.slice().forEach(enemy=>{let phase=1;if(enemy.data.boss&&enemy.hp<enemy.maxHp*.5)phase=1.35;enemy.distance-=delta*3*this.stage.enemySpeed*Math.max(.8,enemy.data.speed||1)*slow*phase;this.positionEnemy(enemy);if(enemy.distance<=8)this.enemyReached(enemy);});
         }
-        if(this.questionTime>0&&this.timeLeft<=0){this.wrong+=1;this.combo=0;this.timeLeft=this.questionTime;this.message("หมดเวลา — รีบวาดใหม่!");window.DrawHero.Audio.play("wrong");}
+        if(!readingProtected&&this.questionTime>0&&this.timeLeft<=0){this.wrong+=1;this.combo=0;this.timeLeft=this.questionTime;this.message("หมดเวลา — รีบวาดใหม่!");window.DrawHero.Audio.play("wrong");}
         this.updateTimer();
       }
       this.raf=requestAnimationFrame(this.boundLoop);

@@ -2,6 +2,7 @@
   "use strict";
   // Offline template classifier. Never treat a similarity percentage as certainty.
   const DH = window.DrawHero, N = 64;
+  const neighbors=[[1,0],[-1,0],[0,1],[0,-1]];
   const fonts = ["DH Handwriting", "DH Thai Looped", "Arial", "Tahoma"];
   const cache = new Map();
   const preparing = new Set();
@@ -120,9 +121,24 @@
     for(let i=0;i<mask.length;i++)mask[i]=raw[i*4+3]>64?1:0;
     const skeleton=thin(mask),points=[];
     skeleton.forEach((v,i)=>{if(v)points.push(i);});
-    return {points,distance:distances(skeleton),aspect:b.w/b.h};
+    // Closed regions supply a small structural check for Thai loop placement.
+    // Ignore tiny raster holes and never require an exact loop count.
+    const visited=new Uint8Array(N*N),loops=[];
+    for(let i=0;i<mask.length;i++)if(!mask[i]&&!visited[i]){
+      const queue=[i];visited[i]=1;let edge=false,sx=0,sy=0;
+      for(let k=0;k<queue.length;k++){
+        const j=queue[k],x=j%N,y=Math.floor(j/N);sx+=x;sy+=y;
+        if(!x||!y||x===N-1||y===N-1)edge=true;
+        for(const [dx,dy] of neighbors){
+          const xx=x+dx,yy=y+dy,next=yy*N+xx;
+          if(xx>=0&&xx<N&&yy>=0&&yy<N&&!mask[next]&&!visited[next]){visited[next]=1;queue.push(next);}
+        }
+      }
+      if(!edge&&queue.length>=4)loops.push({x:sx/queue.length/N,y:sy/queue.length/N});
+    }
+    return {points,distance:distances(skeleton),aspect:b.w/b.h,loops};
   }
-  function compare(a,b) {
+  function compare(a,b,thai=false) {
     function direction(points,map,dx,dy){return points.reduce((s,i)=>{
       const x=i%N+dx,y=Math.floor(i/N)+dy;
       return s+(x>=0&&x<N&&y>=0&&y<N?Math.max(0,1-map[y*N+x]/6):0);
@@ -132,7 +148,9 @@
     for(const dx of [-2,0,2])for(const dy of [-2,0,2])
       match=Math.max(match,Math.sqrt(direction(a.points,b.distance,dx,dy)*direction(b.points,a.distance,-dx,-dy)));
     const aspect=Math.exp(-Math.abs(Math.log(a.aspect/b.aspect)));
-    return Math.max(0,100*(.85*match+.15*aspect));
+    const loopMismatch=thai&&a.loops.length&&b.loops.length?Math.min(...a.loops.flatMap(p=>b.loops.map(q=>Math.hypot(p.x-q.x,p.y-q.y)))):0;
+    const structurePenalty=loopMismatch>.25?Math.min(6,(loopMismatch-.25)*20):0;
+    return Math.max(0,100*(.85*match+.15*aspect)-structurePenalty);
   }
   function variations(part){
     // Bounded style adjustments: never mirror a letter or change its stroke order.
@@ -170,9 +188,34 @@
     a:[[[67,28],[47,19],[24,27],[13,50],[18,76],[37,88],[58,81],[68,60],[67,28],[70,91]]],
     g:[[[68,22],[44,15],[22,28],[16,48],[27,65],[49,66],[67,47],[68,22],[70,81],[58,97],[34,98],[19,89]]]
   };
+  function thaiPenSamples(unit){
+    if(!["ร","จ"].includes(unit))return [];
+    // Whole-glyph pen forms, reusable in any word; not word-specific exceptions.
+    return [0,5,-5].flatMap(loopSize=>{
+      const c=canvas(130,120),p=c.getContext("2d");p.translate(10,10);p.lineWidth=6;p.lineCap="round";p.lineJoin="round";p.beginPath();
+      if(unit==="ร"){
+        p.moveTo(55,73);p.bezierCurveTo(30,63-loopSize,7,94,34,97);
+        p.bezierCurveTo(60,101,73,75,48,57);p.bezierCurveTo(39,49,17,50,13,43);
+        p.bezierCurveTo(20,30,50,32,57,30);p.lineTo(59,8);
+      }else{
+        p.moveTo(51,58);p.bezierCurveTo(27,48-loopSize,3,71,15,74);
+        p.bezierCurveTo(26,78+loopSize,48,63,51,58);p.bezierCurveTo(59,62,61,82,68,91);
+        p.lineTo(73,47);p.bezierCurveTo(77,3,48,10,13,26);
+      }
+      p.stroke();const samples=[normalize(c)];
+      if(unit==="จ"){
+        p.clearRect(-10,-10,130,120);p.beginPath();
+        p.moveTo(90,96);p.lineTo(78,58);p.bezierCurveTo(70,23-loopSize,23,43,13,64);
+        p.bezierCurveTo(7,81+loopSize,58,62,78,58);p.lineTo(90,96);
+        p.bezierCurveTo(110,20,99,-5,62,3);p.bezierCurveTo(45,6,25,13,13,20);p.stroke();samples.push(normalize(c));
+      }
+      return samples;
+    });
+  }
   function templates(unit) {
     if(cache.has(unit))return cache.get(unit);
     const values=fonts.map(font=>normalize(render(unit,font))).filter(Boolean);
+    values.push(...thaiPenSamples(unit));
     if(numeralPaths[unit]){
       for(const paths of [numeralPaths[unit],...(numeralVariants[unit]||[])]) {
         const c=canvas(120,120),ctx=c.getContext("2d");ctx.lineWidth=5;ctx.lineCap="round";ctx.lineJoin="round";
@@ -210,21 +253,24 @@
     const key=unit=>caseInsensitive?unit.toLowerCase():unit;
     const results=parts.map((part,index)=>{
       const input=normalize(part);
-      const scores=candidates.map(unit=>({unit,score:Math.max(...templates(unit).map(sample=>compare(input,sample)))})).sort((a,b)=>b.score-a.score);
+      const scores=candidates.map(unit=>({unit,score:Math.max(...templates(unit).map(sample=>compare(input,sample,/[ก-๛]/u.test(unit))))})).sort((a,b)=>b.score-a.score);
       const wanted=scores.find(s=>key(s.unit)===key(expected[index]));
       // Retry borderline shapes against the same competing alphabet. Lowering the
       // pass threshold alone would also let genuinely different letters through.
       if(wanted.score>=55&&(wanted.score<85||wanted.score-(scores.find(s=>key(s.unit)!==key(expected[index]))?.score||0)<8)){
         const samples=variations(part),shortlist=scores.slice(0,10);
         if(!shortlist.includes(wanted))shortlist.push(wanted);
-        shortlist.forEach(item=>{for(const sample of samples)for(const template of templates(item.unit))item.score=Math.max(item.score,compare(sample,template)-1);});
+        shortlist.forEach(item=>{for(const sample of samples)for(const template of templates(item.unit))item.score=Math.max(item.score,compare(sample,template,/[ก-๛]/u.test(item.unit))-1);});
         scores.sort((a,b)=>b.score-a.score);
       }
       const best=scores[0],matched=scores.find(s=>key(s.unit)===key(expected[index])),other=scores.find(s=>key(s.unit)!==key(expected[index]));
       const margin=matched.score-(other?other.score:0);
-      return {target:expected[index],recognized:best.unit,score:Math.round(matched.score),bestScore:Math.round(best.score),margin:Math.round(margin)};
+      // Known confusions must win on shape, not pass both spellings through
+      // the general small style tolerance.
+      const ambiguousPair=best.unit!==expected[index]&&["รฐ","จค"].some(pair=>pair.includes(best.unit)&&pair.includes(expected[index]));
+      return {target:expected[index],recognized:best.unit,score:Math.round(matched.score),bestScore:Math.round(best.score),margin:Math.round(margin),ambiguousPair};
     });
-    const accepted=results.every(r=>r.score>=65&&r.margin>=-3);
+    const accepted=results.every(r=>r.score>=65&&r.margin>=-3&&!r.ambiguousPair);
     const wrong=results.some(r=>key(r.target)!==key(r.recognized)&&r.bestScore>=87&&r.margin<=-12);
     return {score:Math.round(results.reduce((sum,r)=>sum+r.score,0)/results.length),status:accepted?"correct":wrong?"incorrect":"uncertain",mode:"handwriting",details:{reason:accepted?"matched":wrong?"different_character":"ambiguous",units:results}};
   }
