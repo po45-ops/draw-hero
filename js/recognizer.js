@@ -3,13 +3,31 @@
   const SIZE = 64;
 
   const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
-  function flatten(strokes) { return (strokes || []).reduce((all, stroke) => all.concat(stroke.points || []), []); }
+  function activeStrokes(strokes) {
+    const list = [];
+    (strokes || []).forEach(stroke => {
+      if (!stroke || !Array.isArray(stroke.points)) return;
+      if (stroke.tool === "eraser") {
+        const radius = Math.max(8, (Number(stroke.width) || 13) * 0.75);
+        for (let i = list.length - 1; i >= 0; i -= 1) {
+          const remaining = list[i].points.filter(p => !stroke.points.some(e => distance(p, e) <= radius));
+          if (remaining.length >= 2) list[i] = Object.assign({}, list[i], { points: remaining });
+          else list.splice(i, 1);
+        }
+      } else if (stroke.points.length) {
+        list.push(stroke);
+      }
+    });
+    return list;
+  }
+  function flatten(strokes) { return activeStrokes(strokes).reduce((all, stroke) => all.concat(stroke.points || []), []); }
   function metrics(strokes) {
-    const points = flatten(strokes);
+    const clean = activeStrokes(strokes);
+    const points = flatten(clean);
     if (points.length < 2) return null;
     let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity,pathLength=0;
     points.forEach(point => { minX=Math.min(minX,point.x);minY=Math.min(minY,point.y);maxX=Math.max(maxX,point.x);maxY=Math.max(maxY,point.y); });
-    (strokes || []).forEach(stroke => { for(let i=1;i<stroke.points.length;i+=1) pathLength += distance(stroke.points[i-1],stroke.points[i]); });
+    clean.forEach(stroke => { for(let i=1;i<stroke.points.length;i+=1) pathLength += distance(stroke.points[i-1],stroke.points[i]); });
     const width=Math.max(1,maxX-minX),height=Math.max(1,maxY-minY),diag=Math.hypot(width,height);
     const first=points[0],last=points[points.length-1];
     let corners=0,turning=0;
@@ -19,7 +37,7 @@
       let delta=Math.abs(angle2-angle1); if(delta>Math.PI) delta=2*Math.PI-delta;
       turning+=delta; if(delta>.62) corners+=1;
     }
-    return {points,minX,minY,maxX,maxY,width,height,diag,pathLength,aspect:width/height,closed:distance(first,last)<diag*.28,corners,curvature:turning/Math.max(1,points.length/6),first,last,strokes:strokes.length};
+    return {points,minX,minY,maxX,maxY,width,height,diag,pathLength,aspect:width/height,closed:distance(first,last)<diag*.28,corners,curvature:turning/Math.max(1,points.length/6),first,last,strokes:clean.length};
   }
   function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
   function proximity(value,target,tolerance){return clamp(1-Math.abs(value-target)/tolerance,0,1);}

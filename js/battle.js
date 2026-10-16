@@ -86,8 +86,10 @@
     setQuestion(){
       const q=this.currentQuestion();if(!q)return;
       const readingKey=`${this.questionCursor}:${q.id||this.questions.indexOf(q)}`;
-      if(this.readingQuestionKey!==readingKey){this.readingQuestionKey=readingKey;this.readingBudget=6;this.readingGrace=0;}
+      if(this.readingQuestionKey!==readingKey){this.readingQuestionKey=readingKey;this.readingBudget=6;this.readingGrace=0;this.hintUsed=false;}
       this.slotIndex=0;this.questionTime=this.stage.practice?this.stage.timeLimit:Number(q.timeLimit)||this.stage.timeLimit;this.timeLeft=this.questionTime;
+      const unlimitedHint=this.game.mode==="practice"||this.game.characterId==="mimi";
+      if($("hint-count"))$("hint-count").textContent=unlimitedHint?"ไม่จำกัด":this.hintUsed?"ใช้แล้ว":"1 / wave";
       $("target-display").textContent=q.display;$("target-hint").textContent=q.hint||"วาดตามโจทย์";
       const category=this.categoryFor(q);document.querySelectorAll("#battle-category-tabs [data-category]").forEach(tab=>tab.classList.toggle("active",tab.dataset.category===category));
       this.renderSlots();this.applyGuide();this.updateEnemyBubbles();this.updateHud();
@@ -194,18 +196,19 @@
       const field=$("battlefield");field.classList.remove("impact-shake");void field.offsetWidth;field.classList.add("impact-shake");
       if(enemy.hp<=0){enemy.element.classList.add("defeated");setTimeout(()=>{enemy.element.remove();},650);this.enemies.shift();}
     }
+    later(fn,ms){const timer=setTimeout(()=>{this.pendingTimers.delete(timer);if(this.running)fn();},ms);this.pendingTimers.add(timer);return timer;}
     advanceAfterHit(){
       const enemy=this.activeEnemy();
       if(!enemy){
         this.questionCursor+=1;
-        if(this.questionCursor>=this.questions.length){setTimeout(()=>this.finish(true),650);return;}
+        if(this.questionCursor>=this.questions.length){this.later(()=>this.finish(true),650);return;}
         this.addEnemy(0);
       } else {
         this.questionCursor+=1;
         if(this.stage.boss)enemy.question=this.questions[this.questionCursor%this.questions.length];
         else if(!this.stage.boss)enemy.question=this.questions[this.questionCursor%this.questions.length];
       }
-      if(this.questionCursor>=this.questions.length&&!this.stage.boss){setTimeout(()=>this.finish(true),650);return;}
+      if(this.questionCursor>=this.questions.length&&!this.stage.boss){this.later(()=>this.finish(true),650);return;}
       this.setQuestion();
     }
     showHint(){
@@ -219,9 +222,10 @@
       const skill=window.DrawHero.Skills.get(window.DrawHero.Characters.get(this.game.characterId).skill);this.skillGauge=0;this.playHeroAction("skill",1100);$("battlefield").classList.remove("skill-burst");void $("battlefield").offsetWidth;$("battlefield").classList.add("skill-burst");
       if(skill.type==="destroyAll"){
         this.enemies.slice().forEach(enemy=>{if(!enemy.data.boss){enemy.hp=0;enemy.element.classList.add("defeated");setTimeout(()=>enemy.element.remove(),600);}});
-        this.enemies=this.enemies.filter(enemy=>enemy.data.boss);if(!this.enemies.length){this.questionCursor=Math.min(this.questions.length-1,this.questionCursor+1);this.addEnemy(0);this.setQuestion();}
-      } else if(skill.type==="damage")this.attackEnemy(skill.value||3,0,false);
-      else if(skill.type==="slow")this.slowUntil=performance.now()+(skill.duration||5000);
+        this.enemies=this.enemies.filter(enemy=>enemy.data.boss);if(!this.enemies.length)this.advanceAfterHit();
+      } else if(skill.type==="damage"){
+        const target=this.activeEnemy();this.attackEnemy(skill.value||3,0,false);if(target&&target.hp<=0)this.advanceAfterHit();
+      } else if(skill.type==="slow")this.slowUntil=performance.now()+(skill.duration||5000);
       else if(skill.type==="freeze")this.freezeUntil=performance.now()+(skill.duration||5000);
       this.message(skill.name);window.DrawHero.Audio.play("spell");this.updateHud();
     }
@@ -245,9 +249,14 @@
     enemyReached(enemy){
       if(enemy.attacking)return;enemy.attacking=true;const index=this.enemies.indexOf(enemy);if(index>=0)this.enemies.splice(index,1);
       const sprite=enemy.element.querySelector(".enemy-3d-sprite");if(sprite){sprite.classList.remove("pose-run");sprite.classList.add("pose-attack");}enemy.element.classList.add("enemy-strike");
-      const timer=setTimeout(()=>{this.pendingTimers.delete(timer);enemy.element.remove();if(!this.running)return;this.combo=0;this.wrong+=1;$("player-unit").classList.remove("player-hit");void $("player-unit").offsetWidth;$("player-unit").classList.add("player-hit");
-        if(this.game.mode!=="practice")this.hp=Math.max(0,this.hp-1);this.message(this.game.mode==="practice"?"ลองตัวต่อไปนะ":"เสียหัวใจ 1 ดวง");
-        if(this.hp<=0&&this.game.mode!=="practice"){this.finish(false);return;}
+      const timer=setTimeout(()=>{this.pendingTimers.delete(timer);enemy.element.remove();if(!this.running)return;$("player-unit").classList.remove("player-hit");void $("player-unit").offsetWidth;$("player-unit").classList.add("player-hit");
+        if(this.game.mode==="practice"||(this.stage&&this.stage.practice)){
+          this.message("ฝึกเขียนต่อได้เลย");
+          if(!this.enemies.length&&this.questionCursor<this.questions.length)this.addEnemy(0);
+          this.timeLeft=this.questionTime;this.updateEnemyBubbles();this.updateHud();return;
+        }
+        this.combo=0;this.wrong+=1;this.hp=Math.max(0,this.hp-1);this.message("เสียหัวใจ 1 ดวง");
+        if(this.hp<=0){this.finish(false);return;}
         if(this.questionCursor<this.questions.length)this.addEnemy(0);this.setQuestion();this.updateHud();
       },420);this.pendingTimers.add(timer);
     }
@@ -266,7 +275,8 @@
       if(!this.running)return;window.DrawHero.Audio.stopSpeech();this.running=false;cancelAnimationFrame(this.raf);$("pause-modal").hidden=true;
       const elapsed=Math.max(1,Math.round((performance.now()-this.startTime)/1000));const accuracy=this.correct?Math.round(this.accuracyTotal/this.correct):0;
       const ratio=this.correct/Math.max(1,this.correct+this.wrong);const stars=ratio>=.9?3:ratio>=.65?2:1;
-      const result={victory,stageId:this.stage.id,stageName:this.stage.name,score:this.score,accuracy,correct:this.correct,wrong:this.wrong,bestCombo:this.bestCombo,time:elapsed,stars:victory?stars:0,xp:victory?(this.stage.rewardXP||50):0,coins:victory?(this.stage.rewardCoins||20):0};
+      const xp=this.stage.rewardXP!==undefined?Number(this.stage.rewardXP):50,coins=this.stage.rewardCoins!==undefined?Number(this.stage.rewardCoins):20;
+      const result={victory,stageId:this.stage.id,stageName:this.stage.name,score:this.score,accuracy,correct:this.correct,wrong:this.wrong,bestCombo:this.bestCombo,time:elapsed,stars:victory?stars:0,xp:victory?xp:0,coins:victory?coins:0};
       if(victory)window.DrawHero.Audio.play("victory");if(this.onFinish)this.onFinish(result);
     }
     stop(){window.DrawHero.Audio.stopSpeech();this.running=false;this.paused=false;cancelAnimationFrame(this.raf);clearTimeout(this.heroActionTimer);this.pendingTimers.forEach(timer=>clearTimeout(timer));this.pendingTimers.clear();this.enemies=[];if($("enemy-layer"))$("enemy-layer").innerHTML="";if($("projectile-layer"))$("projectile-layer").innerHTML="";if($("pause-modal"))$("pause-modal").hidden=true;if($("tutorial-modal"))$("tutorial-modal").hidden=true;if($("battlefield"))$("battlefield").classList.remove("skill-burst");if(this.board){this.board.destroy();this.board=null;}}

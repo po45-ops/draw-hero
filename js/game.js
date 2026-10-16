@@ -24,6 +24,7 @@
       const key=type||"mixed";this.save.learningStats=this.save.learningStats||{};
       const item=this.save.learningStats[key]||{attempts:0,correct:0,scoreTotal:0};
       item.attempts+=1;if(correct)item.correct+=1;item.scoreTotal+=Math.max(0,Number(score)||0);this.save.learningStats[key]=item;
+      this.persist();
     }
     addRewards(result){
       const oldLevel=this.save.level;this.save.xp+=result.xp;this.save.coins+=result.coins;

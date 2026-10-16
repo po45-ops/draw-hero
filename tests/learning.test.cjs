@@ -9,11 +9,11 @@ if(fs.existsSync(arial))GlobalFonts.registerFromPath(arial,"Arial");
 const elements=new Map();
 const element=()=>({style:{},classList:{toggle(){},remove(){},add(){}},setAttribute(){},addEventListener(){}});
 const document={fonts:{load:async()=>[true]},createElement:type=>type==="canvas"?createCanvas(720,420):element(),getElementById:id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);}};
-const context={window:{},document,console,setTimeout,clearTimeout,performance,Uint8Array,Float32Array};
+const context={window:{},document,console,setTimeout,clearTimeout,cancelAnimationFrame(){},performance,Uint8Array,Float32Array};
 context.window.speechSynthesis={cancel(){},getVoices:()=>[{lang:"th-TH",localService:true},{lang:"en-US",localService:true}],speak(u){context.spoken=u;u.onend();}};
 context.window.SpeechSynthesisUtterance=function(text){this.text=text;};
 vm.createContext(context);
-for(const file of ["content","word-lists","curriculum","levels","handwriting","drawing","practice-guide","audio","battle"])vm.runInContext(fs.readFileSync(path.join(root,`js/${file}.js`),"utf8"),context);
+for(const file of ["content","word-lists","curriculum","levels","recognizer","handwriting","drawing","practice-guide","audio","battle"])vm.runInContext(fs.readFileSync(path.join(root,`js/${file}.js`),"utf8"),context);
 const DH=context.window.DrawHero;
 function textCanvas(text,font="DH Handwriting",size=130){const c=createCanvas(1200,300),ctx=c.getContext("2d");ctx.font=`${size}px "${font}"`;ctx.fillStyle="#000";ctx.fillText(text,20,200);return c;}
 function recognize(c,target,language){return DH.Handwriting.recognize({canvas:c,target,options:{language}});}
@@ -187,6 +187,15 @@ async function main(){
   assert.equal(DH.Audio.readQuestion(DH.Content.byType("thai_letter")[0],null),false);
   assert.equal(context.spoken,previous,"Muted sound must not speak");
   DH.Audio.stopSpeech();
+  const erasedLine=DH.Recognizer.geometry([
+    {tool:"pen",width:12,points:[{x:20,y:50},{x:80,y:50},{x:140,y:50}]},
+    {tool:"eraser",width:20,points:[{x:20,y:50},{x:80,y:50},{x:140,y:50}]}
+  ],"—");
+  assert.equal(erasedLine.score,0,"Erased geometry strokes must not score as a valid shape");
+  let finishedResult=null;
+  const zeroRewardBattle={running:true,raf:0,startTime:0,correct:2,wrong:0,accuracyTotal:180,score:250,bestCombo:2,stage:{id:"p1",name:"Practice",rewardXP:0,rewardCoins:0},onFinish(r){finishedResult=r;}};
+  DH.BattleEngine.prototype.finish.call(zeroRewardBattle,true);
+  assert.equal(finishedResult.xp,0);assert.equal(finishedResult.coins,0,"Practice stages with 0 reward must not grant default XP/coins");
   console.log(`PASS: ${passed} accepted correct fixtures, ${uncertain} ambiguous (not penalized); wrong answers rejected, eraser, stage coverage and speech passed.`);
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

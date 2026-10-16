@@ -136,7 +136,13 @@
   function renderCustomStages(){
     const list=$("custom-stage-list"),packs=game.save.customPacks||[];list.innerHTML="";
     const stages=[];packs.forEach(pack=>(pack.stages||[]).forEach(stage=>stages.push({stage,pack})));if(!stages.length){list.innerHTML='<div class="empty-state"><h2>ยังไม่มีด่านสร้างเอง</h2><p>นำเข้า Content Pack หรือสร้างด่านใหม่ใน Creator</p></div>';return;}
-    stages.forEach(({stage,pack})=>{const article=document.createElement("article");article.className="custom-item";article.innerHTML=`<div><small>${pack.name||"CUSTOM PACK"}</small><h3>${stage.name}</h3><p>${stage.description||"ด่านฝึกเขียนสร้างเอง"}</p></div><button class="fantasy-button primary">เล่นด่านนี้</button>`;article.querySelector("button").addEventListener("click",()=>startCustomStage(stage,pack));list.appendChild(article);});
+    stages.forEach(({stage,pack})=>{
+      const article=document.createElement("article");article.className="custom-item";
+      const copy=document.createElement("div"),small=document.createElement("small"),h3=document.createElement("h3"),p=document.createElement("p"),button=document.createElement("button");
+      small.textContent=String(pack.name||"CUSTOM PACK");h3.textContent=String(stage.name||"ด่านไร้ชื่อ");p.textContent=String(stage.description||"ด่านฝึกเขียนสร้างเอง");
+      copy.append(small,h3,p);button.className="fantasy-button primary";button.textContent="เล่นด่านนี้";button.addEventListener("click",()=>startCustomStage(stage,pack));
+      article.append(copy,button);list.appendChild(article);
+    });
   }
   function startCustomStage(stage,pack){const questions=(stage.questions||[]).map(item=>typeof item==="string"?(pack.questions||[]).find(q=>q.id===item)||item:item);startBattle(Object.assign({},stage,{id:stage.id||`custom_${Date.now()}`,questions,enemyTypes:stage.enemyTypes||[stage.enemyType||"goblin"]}));}
   function startCreatorPreview(){try{const raw=localStorage.getItem("drawHeroPreviewStage");if(!raw)return;const data=JSON.parse(raw);game.setMode("custom");flowActive=false;startCustomStage(data.stage,data.pack||{questions:data.questions||[]});}catch(error){toast("ไม่สามารถเปิดด่าน Preview ได้");}}

@@ -53,6 +53,13 @@ async function main(){
         return {status:result.status,milliseconds,english:english.status};
       });
       assert.equal(reading.status,'correct');assert.equal(reading.english,'correct');assert.deepEqual(errors,[]);
+      assert.ok(layouts.every(l=>l.overflow===0),`Horizontal overflow detected: ${JSON.stringify(layouts)}`);
+      const customSafe=await page.evaluate(()=>{
+        DrawHeroApp.game.save.customPacks=[{id:'p1',name:'<img src=x onerror=window.__xss=1>',stages:[{id:'s1',name:'<b>Stage</b>',description:'<i>Desc</i>',questions:[]}]}];
+        DrawHeroApp.showScreen('custom');
+        return !window.__xss&&document.querySelector('#custom-stage-list h3').textContent==='<b>Stage</b>'&&!document.querySelector('#custom-stage-list b');
+      });
+      assert.equal(customSafe,true,'Custom stage rendering must escape HTML');
       console.log(JSON.stringify({viewport,layouts,reading,errors}));await context.close();
     }
   }finally{await browser.close();}
